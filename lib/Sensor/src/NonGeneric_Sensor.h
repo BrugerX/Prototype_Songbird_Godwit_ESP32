@@ -9,13 +9,20 @@
 #include "arrayUtil.h"
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
+#include <SPI.h>
 
 #define ADC_RESOLUTION 4096
 #define ADC_REF_VOLT  3.3
 
 
+#define custom_SS 5
+#define custom_CLK 18
+
+#define custom_MISO 19
+#define custom_MOSI 23
+
 /**
- * A simple analog sensor, that has a pin it reads from.
+ * A simple analog sensor, that has an inbuilt ADC pin it reads from.
  */
 class Simple_Analog_Sensor{
 
@@ -56,7 +63,7 @@ class Simple_SWC_Sensor : public Simple_Analog_Sensor
 {
 
 protected:
-    int pwr_pin{};
+    int pwr_pin;
 
     void turn_on_sensor();
 
@@ -114,6 +121,62 @@ public:
 
     int set_pwr_pin(int new_pin);
 
+
+
+
+
+};
+
+class SPI_SWC_Sensor
+{
+
+
+    private:
+    int ADC_resolution = 4096;
+    float ref_voltage = 3.3;
+
+    SPIClass * SPI_class = new SPIClass(VSPI);
+
+    bool isSSHigh = false;
+    bool isSWCHigh = false;
+
+
+    int pwr_pin;
+
+    void turn_on_sensor();
+
+    void turn_off_sensor();
+
+    void turn_on_SS();
+
+    void turn_off_SS();
+
+
+    uint8_t transfer(uint8_t outgoing_data);
+
+
+    public:
+
+
+    uint16_t read_sensor();
+
+    float read_sensor_v();
+
+
+
+    SPI_SWC_Sensor(int init_pwr_pin)
+    {
+        pwr_pin = init_pwr_pin;
+        pinMode(custom_SS,OUTPUT);
+        pinMode(pwr_pin,OUTPUT);
+
+        SPI_class->begin(custom_CLK,custom_MISO,custom_MOSI,custom_SS);
+
+
+        digitalWrite(custom_SS,HIGH);
+        SPI_class->setBitOrder(MSBFIRST); //MSB goes first out
+        SPI_class->setClockDivider(SPI_CLOCK_DIV16); //1Mhz SPI clock
+    };
 
 
 
