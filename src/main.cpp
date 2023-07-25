@@ -2,7 +2,7 @@
 #include "TBeamPower.h"
 #include "NonGeneric_Sensor.h"
 #include <string>
-#include "SENSOR_SETTINGS.h"
+#include <BLEUtil.h>
 
 #define BATTERY_PWR_VLTG_CHAR_UUID "0002"
 #define BATTERY_PWR_WARN_CHAR_UUID "0003"
@@ -23,7 +23,9 @@
 #define BATTERY_THRESHOLD 2.7
 
 auto * batman = new TBeamPower();
-auto * SWC_sensor = new Simple_SWC_Sensor(SWC_SENSR_READ_PIN,SWC_SENSR_PWR_PIN);
+auto * SWC_sensor = new SPI_SWC_Sensor(12);
+auto * one_wire = new OneWire(DALLAS_TEMP_BUS_PIN);
+auto * dallas_temp = new DallasTemperature(one_wire);
 
 /** NimBLE_Server Demo:
  *
@@ -101,9 +103,22 @@ class CharacteristicCallbacks: public NimBLECharacteristicCallbacks {
 
 
     void onRead(NimBLECharacteristic* pCharacteristic){
-        Serial.print(pCharacteristic->getUUID().toString().c_str());
-        Serial.print(": onRead(), value: ");
-        Serial.println(pCharacteristic->getValue().c_str());
+
+        //Outputs a string
+        if(isSameCharacteristic(SWC_READ_CHAR_UUID,pCharacteristic))
+        {
+            float sensr_r_v = SWC_sensor->read_sensor_v();
+            pCharacteristic->setValue(std::to_string(SWC_sensor->read_sensor_v()));
+            log_e("Client is reading SWC, with a voltage value of: %f",pCharacteristic->getValue().c_str());
+        }
+
+        if(isSameCharacteristic(TEMP_READ_CHAR_UUID,pCharacteristic))
+        {
+            dallas_temp->requestTemperatures();
+            pCharacteristic->setValue(std::to_string(dallas_temp->getTempCByIndex(0)));
+
+        }
+
     };
 
     void onWrite(NimBLECharacteristic* pCharacteristic) {
@@ -177,6 +192,7 @@ void setup() {
     Serial.begin(115200);
     Serial.println("Starting NimBLE Server");
 
+    dallas_temp->begin();
     batman->begin();
 
     /** sets device name */
@@ -286,7 +302,7 @@ void setup() {
             NIMBLE_PROPERTY::READ|NIMBLE_PROPERTY::INDICATE
             );
 
-    pSWCReadChr->setValue("SWC_READ");
+    pSWCReadChr->setValue(0.0);
     pSWCReadChr->setCallbacks(&chrCallbacks);
 
     NimBLECharacteristic * pSWCFreqChr = pSWCService->createCharacteristic
