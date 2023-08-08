@@ -8,15 +8,9 @@
 #include <SPI.h>
 #include "NonGeneric_Sensor.h"
 
-#define custom_SS 5
-#define custom_CLK 18
-
-#define custom_MISO 19
-#define custom_MOSI 23
-
 auto * SPI_class = new SPIClass(VSPI);
 
-auto * SPI_sensor = new SPI_SWC_Sensor(0);
+auto * SPI_sensor = new SPI_SWC_Sensor(33);
 
 
 
@@ -31,6 +25,12 @@ void tearDown(void) {
 
 void readSensor(void)
 {
+
+    SPI_sensor->turn_on_sensor();
+    delay(10000);
+    log_e("Sensor turned on");
+    delay(10000);
+
     for(int i = 0; i<10;i++)
     {
         float result = SPI_sensor->read_sensor_v();
@@ -38,6 +38,11 @@ void readSensor(void)
         delay(1000);
     }
 
+}
+
+void takeSampleAverage(void)
+{
+    log_e("Result of average: %f",SPI_sensor->take_sample_avg(1600,10));
 }
 
 void setup()
@@ -57,6 +62,7 @@ void setup()
     SPI_class->setClockDivider(SPI_CLOCK_DIV16); //1Mhz SPI clock
     */
     RUN_TEST(readSensor);
+    RUN_TEST(takeSampleAverage);
     UNITY_END(); // stop unit testing
 }
 

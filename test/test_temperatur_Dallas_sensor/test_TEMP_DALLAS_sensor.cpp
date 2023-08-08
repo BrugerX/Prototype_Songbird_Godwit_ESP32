@@ -24,13 +24,17 @@ void setUp(void) {
 
 void tearDown(void) {
     // delete stuff down here
+    TEMPSens->requestTemperatures();
 }
 
 void readSensor(void)
 {
-    TEMPSens->requestTemperatures();
-    delay(100);
-    log_e("Result of the reading: %f",TEMPSens->getTempCByIndex(0));
+    while(true)
+    {
+        TEMPSens->requestTemperatures();
+        delay(1000);
+        log_e("Result of the reading: %f", TEMPSens->getTempCByIndex(0));
+    }
 }
 
 void setup()

@@ -9,7 +9,18 @@ float Simple_Analog_Sensor::from_ADC_to_voltage(uint16_t ADC_value)
     return (float) ADC_value/(ADC_resolution/ref_voltage);
 }
 
-float Simple_Analog_Sensor::take_sample_avg(int sample_size, int delay_wait)
+uint16_t * SPI_SWC_Sensor::take_samples(int sample_size, int delay_wait)
+{
+    uint16_t sample[sample_size];
+    for(int i = 0; i<sample_size;i++)
+    {
+        sample[i] = read_sensor_v();
+    }
+
+    return sample;
+}
+
+float SPI_SWC_Sensor::take_sample_avg(int sample_size, int delay_wait)
 {
     float sum;
 
@@ -19,7 +30,7 @@ float Simple_Analog_Sensor::take_sample_avg(int sample_size, int delay_wait)
         delay(delay_wait);
     }
 
-    return sum;
+    return sum/sample_size;
 }
 
 void SPI_SWC_Sensor::turn_on_SS()
