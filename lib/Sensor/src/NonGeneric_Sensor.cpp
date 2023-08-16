@@ -76,7 +76,6 @@ uint8_t SPI_SWC_Sensor::transfer(uint8_t outgoing_data)
 
 uint16_t  SPI_SWC_Sensor::read_sensor()
 {
-    turn_on_sensor();
 
     byte byte0,byte1;
     uint16_t word;
@@ -87,7 +86,6 @@ uint16_t  SPI_SWC_Sensor::read_sensor()
     byte1 = transfer(0x00);
 
     turn_off_SS();
-    turn_off_sensor();
 
     word = ( byte0 << 8 | byte1 ) & 0b111111111111;
     return word;
