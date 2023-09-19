@@ -20,24 +20,49 @@ class Simple_Sensor
 
 protected:
 
-
-    virtual uint16_t * take_samples(int sample_size,int delay_wait);
-
 public:
 
 
     ~Simple_Sensor(){};
 
     //Returns the raw reading
-    virtual uint16_t read_sensor();
-
-    virtual float take_sample_avg(int sample_size,int delay_wait);
+    virtual float read_sensor();
 
 
     Simple_Sensor(){};
 
 
 
+};
+
+class SMT100_Sensor
+        {
+
+    protected:
+            String address;
+            HardwareSerial * SMT100_uart;
+            int RS485_enable_pin;
+
+
+
+
+
+        public:
+
+        SMT100_Sensor(String address, HardwareSerial * UART, int RS485_enable_pin)
+        {
+            SMT100_uart = UART;
+            this->RS485_enable_pin = RS485_enable_pin;
+            this->address = address;
+
+
+        }
+
+        void begin();
+        String writeCommand(String command);
+        float get_temperature();
+        float get_VWC();
+        String get_address();
 };
 
 /**
@@ -103,7 +128,7 @@ protected:
     void turn_off_sensor();
 
 
-    uint16_t read_sensor();
+    float read_sensor();
 
     float read_sensor_v();
 

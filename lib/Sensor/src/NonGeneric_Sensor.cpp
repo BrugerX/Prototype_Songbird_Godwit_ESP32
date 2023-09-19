@@ -74,7 +74,7 @@ uint8_t SPI_SWC_Sensor::transfer(uint8_t outgoing_data)
     throw std::logic_error("SLAVE SELECT WAS NOT HIGH WHEN TRYING TO TRANSFER DATA");
 }
 
-uint16_t  SPI_SWC_Sensor::read_sensor()
+float SPI_SWC_Sensor::read_sensor()
 {
 
     byte byte0,byte1;
@@ -95,4 +95,52 @@ float  SPI_SWC_Sensor::read_sensor_v()
 {
     float sensor_value = from_ADC_to_voltage(read_sensor());
     return sensor_value;
+}
+
+float SMT100_Sensor::get_temperature() {
+
+
+}
+
+String SMT100_Sensor::writeCommand(String command) {
+    digitalWrite(RS485_enable_pin, HIGH);  // Set to transmit mode
+    SMT100_uart->print(command);               // Based on your details, assuming "GetAddress" is the command
+    SMT100_uart->flush();
+    digitalWrite(RS485_enable_pin, LOW);
+    delay(200);
+    // Read the response from the sensor
+    String response = "";
+    while (SMT100_uart->available()) {
+        response += (char)SMT100_uart->read();
+    }
+
+    if(response.length()>0)
+    {
+        return response;
+    }
+
+    log_e("ERROR: NO RESPONSE RECEIVED FROM SENSOR AFTER WRITING COMMAND: %s", command.c_str());
+    throw std::runtime_error("NO RESPONSE RECEIVED FROM SENSOR AFTER WRITING COMMAND");
+}
+
+String SMT100_Sensor::get_address() {
+    return writeCommand("GetAddress!\r");
+}
+
+float SMT100_Sensor::get_VWC() {
+    String command_to_send = "GetWaterContent!" + this->address + "\r";
+    String response = writeCommand(command_to_send);
+    return response.toFloat();
+}
+
+void SMT100_Sensor::begin() {
+    this->SMT100_uart->begin(9600);
+    pinMode(RS485_enable_pin,OUTPUT); //Setup the control pin
+
+    if(address == FETCH_SMT100_SNSR_ADDRESS)
+    {
+        this->address = get_address();
+    }
+
+
 }
