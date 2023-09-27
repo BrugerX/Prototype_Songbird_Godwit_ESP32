@@ -2,41 +2,30 @@
 #include "TBeamPower.h"
 #include "NonGeneric_Sensor.h"
 #include <string>
-#include <BLEUtil.h>
+#include "BLEUtil.h"
+#include <coap_config_posix.h>
+#include <time.h>
+#include "BLEMacros.h"
 
-#define BATTERY_PWR_VLTG_CHAR_UUID "0002"
-#define BATTERY_PWR_WARN_CHAR_UUID "0003"
-#define BATTERY_PWR_SRVI_UUID "BA79"
 
-#define SWC_SRVI_UUID "3A7E"
-#define SWC_CALIBRTNA_CHAR_UUID "0005"
-#define SWC_CALIBRTNB_CHAR_UUID "0006"
-#define SWC_READ_CHAR_UUID "0007"
-#define SWC_READ_FREQ_CHAR_UUID "0008"
+#define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
+long time_awoken;
 
-#define TEMP_SRVI_UUID "7E89"
-#define TEMP_READ_CHAR_UUID "0011"
-#define TEMP_READ_FREQ_CHAR_UUID "0012"
-
+String getCurrentTimestamp() {
+    struct tm timeinfo;
+    char buffer[30];
+    time_t now;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    return String(buffer);
+}
 
 
 #define BATTERY_THRESHOLD 2.7
 
-auto * batman = new TBeamPower();
-auto * SWC_sensor = new SPI_SWC_Sensor(12);
-auto * one_wire = new OneWire(DALLAS_TEMP_BUS_PIN);
-auto * dallas_temp = new DallasTemperature(one_wire);
-
-/** NimBLE_Server Demo:
- *
- *  Demonstrates many of the available features of the NimBLE server library.
- *
- *  Created: on March 22 2020
- *      Author: H2zero
- *
-*/
-
-#include "NimBLEDevice.h"
+auto * RS485_UART = new HardwareSerial(2);
+auto * SWC_sensor = new SMT100_Sensor(FETCH_SMT100_SNSR_ADDRESS,RS485_UART,13);
 
 static NimBLEServer* pServer;
 
@@ -104,22 +93,22 @@ class CharacteristicCallbacks: public NimBLECharacteristicCallbacks {
 
     void onRead(NimBLECharacteristic* pCharacteristic){
 
-        //Outputs a string
-        if(isSameCharacteristic(SWC_READ_CHAR_UUID,pCharacteristic))
+        // Outputs a string
+        if(isSameCharacteristic(SWC_VWC_CHAR_UUID, pCharacteristic))
         {
-            float sensr_r_v = SWC_sensor->read_sensor_v();
-            pCharacteristic->setValue(std::to_string(SWC_sensor->read_sensor_v()));
-            log_e("Client is reading SWC, with a voltage value of: %f",pCharacteristic->getValue().c_str());
+            float VWC = SWC_sensor->read_VWC();
+            pCharacteristic->setValue(std::to_string(VWC));
+            log_e("Client is reading SWC, with a voltage value of: %s", pCharacteristic->getValue().c_str());
+
+            // We then set the current timestamp
+            NimBLEService * pSWCService = pServer->getServiceByUUID(SWC_SRVI_UUID);
+            NimBLECharacteristic * pSWCTStampChar = pSWCService->getCharacteristic(SWC_VWC_TSTAMP_CHAR_UUID);
+
+            // Set value to the current timestamp
+            pSWCTStampChar->setValue(getCurrentTimestamp());
         }
+    }
 
-        if(isSameCharacteristic(TEMP_READ_CHAR_UUID,pCharacteristic))
-        {
-            dallas_temp->requestTemperatures();
-            pCharacteristic->setValue(std::to_string(dallas_temp->getTempCByIndex(0)));
-
-        }
-
-    };
 
     void onWrite(NimBLECharacteristic* pCharacteristic) {
         Serial.print(pCharacteristic->getUUID().toString().c_str());
@@ -131,7 +120,20 @@ class CharacteristicCallbacks: public NimBLECharacteristicCallbacks {
      *  the value can be changed here before sending if desired.
      */
     void onNotify(NimBLECharacteristic* pCharacteristic) {
-        Serial.println("Sending notification to clients");
+        // Outputs a string
+        if(isSameCharacteristic(SWC_VWC_CHAR_UUID, pCharacteristic))
+        {
+            float VWC = SWC_sensor->read_VWC();
+            pCharacteristic->setValue(std::to_string(VWC));
+            log_e("Client is being notified of SWC, with a voltage value of: %s", pCharacteristic->getValue().c_str());
+
+            // We then set the current timestamp
+            NimBLEService * pSWCService = pServer->getServiceByUUID(SWC_SRVI_UUID);
+            NimBLECharacteristic * pSWCTStampChar = pSWCService->getCharacteristic(SWC_VWC_TSTAMP_CHAR_UUID);
+
+            // Set value to the current timestamp
+            pSWCTStampChar->setValue(getCurrentTimestamp());
+        }
     };
 
 
@@ -190,10 +192,9 @@ static CharacteristicCallbacks chrCallbacks;
 
 void setup() {
     Serial.begin(115200);
-    Serial.println("Starting NimBLE Server");
+    SWC_sensor->begin();
 
-    dallas_temp->begin();
-    batman->begin();
+    Serial.println("Starting NimBLE Server");
 
     /** sets device name */
     NimBLEDevice::init("Din Mor Er Grim");
@@ -226,28 +227,6 @@ void setup() {
 
 
 
-    NimBLEService* pDeadService = pServer->createService("DEAD");
-    NimBLECharacteristic* pBeefCharacteristic = pDeadService->createCharacteristic(
-            "BEEF",
-            NIMBLE_PROPERTY::READ |
-            NIMBLE_PROPERTY::WRITE |
-            /** Require a secure connection for read and write access */
-            NIMBLE_PROPERTY::READ_ENC |  // only allow reading if paired / encrypted
-            NIMBLE_PROPERTY::WRITE_ENC   // only allow writing if paired / encrypted
-    );
-
-
-    pBeefCharacteristic->setValue("Burger");
-    pBeefCharacteristic->setCallbacks(&chrCallbacks);
-
-    /** 2904 descriptors are a special case, when createDescriptor is called with
-     *  0x2904 a NimBLE2904 class is created with the correct properties and sizes.
-     *  However we must cast the returned reference to the correct type as the method
-     *  only returns a pointer to the base NimBLEDescriptor class.
-     */
-    NimBLE2904* pBeef2904 = (NimBLE2904*)pBeefCharacteristic->createDescriptor("2904");
-    pBeef2904->setFormat(NimBLE2904::FORMAT_UTF8);
-    pBeef2904->setCallbacks(&dscCallbacks);
     /**
      * Temperature services
      * Includes:
@@ -273,45 +252,27 @@ void setup() {
     /**
      * SWC services.
      * Includes:
-     * SWC_read char: Readable, indicationable: Is the soil water content reading
-     * SWC_read_freq: Readable,writeable: The frequency at which we indicate our SWC reading
-     * SWC_A: Writeable,readable: The A in the linear regression
-     * SWC_B: Writeable,readable: The B in the linear regression
+     * SWC_VWC char: Readable, indicationable: Is the soil water content reading denoted in % volumetric water content
+     * SWC_VWC_timestamp char: Readable, indicationable: Is the timestamp immediately after we've recorded the VWC
      */
 
     NimBLEService * pSWCService = pServer->createService(SWC_SRVI_UUID);
-    NimBLECharacteristic * pCalibrtnAChr = pSWCService->createCharacteristic(
-            SWC_CALIBRTNA_CHAR_UUID,
-            NIMBLE_PROPERTY::READ| NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::READ_ENC|NIMBLE_PROPERTY::WRITE_ENC
-    );
-
-    pCalibrtnAChr->setValue("CalbritnA");
-    pCalibrtnAChr->setCallbacks(&chrCallbacks);
-
-    NimBLECharacteristic * pCalibrtnBChr = pSWCService->createCharacteristic (
-            SWC_CALIBRTNB_CHAR_UUID,
-            NIMBLE_PROPERTY::READ| NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::READ_ENC|NIMBLE_PROPERTY::WRITE_ENC
-    );
 
 
-    pCalibrtnBChr->setValue("CalibrtnB");
-    pCalibrtnBChr->setCallbacks(&chrCallbacks);
-
-    NimBLECharacteristic * pSWCReadChr = pSWCService ->createCharacteristic(
-            SWC_READ_CHAR_UUID,
+    NimBLECharacteristic * pSWCVWCChr = pSWCService ->createCharacteristic(
+            SWC_VWC_CHAR_UUID,
             NIMBLE_PROPERTY::READ|NIMBLE_PROPERTY::INDICATE
             );
 
-    pSWCReadChr->setValue(0.0);
-    pSWCReadChr->setCallbacks(&chrCallbacks);
+    NimBLECharacteristic * pSWCVWCTStampChr = pSWCService ->createCharacteristic(
+            SWC_VWC_TSTAMP_CHAR_UUID,
+            NIMBLE_PROPERTY::READ|NIMBLE_PROPERTY::INDICATE
+    );
 
-    NimBLECharacteristic * pSWCFreqChr = pSWCService->createCharacteristic
-            (
-                    SWC_READ_FREQ_CHAR_UUID,
-                    NIMBLE_PROPERTY::READ|NIMBLE_PROPERTY::WRITE
-                    );
-    pSWCFreqChr->setValue(100);
-    pSWCFreqChr->setCallbacks(&chrCallbacks);
+    pSWCVWCChr->setValue(0.0);
+    pSWCVWCChr->setCallbacks(&chrCallbacks);
+    pSWCVWCTStampChr->setValue("0");
+    pSWCVWCTStampChr->setCallbacks(&chrCallbacks);
 
     /**
      * BATTERY SERVICES
@@ -352,14 +313,12 @@ void setup() {
     pC01Ddsc->setCallbacks(&dscCallbacks);
 
     /** Start the services when finished creating all Characteristics and Descriptors */
-    pDeadService->start();
     pBatriService->start();
     pSWCService->start();
     pTempService->start();
 
     NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
     /** Add the services to the advertisment data **/
-    pAdvertising->addServiceUUID(pDeadService->getUUID());
     pAdvertising->addServiceUUID(pBatriService->getUUID());
     pAdvertising->addServiceUUID(pSWCService->getUUID());
     pAdvertising->addServiceUUID(pTempService->getUUID());
@@ -370,12 +329,16 @@ void setup() {
     pAdvertising->start();
 
     Serial.println("Advertising Started");
+
+    int time_in_us = 60*uS_TO_S_FACTOR;
+
+    esp_sleep_enable_timer_wakeup(time_in_us);
+    time_awoken = millis();
 }
 
 
 void loop() {
     if(pServer->getConnectedCount()) {
-
         //Everything related to power management
         NimBLEService* pBatriSvc = pServer->getServiceByUUID(BATTERY_PWR_SRVI_UUID);
         if(pBatriSvc) {
@@ -383,7 +346,7 @@ void loop() {
 
             log_i("%s","We got the Batri service");
 
-            int btriVoltage = batman->get_battery_voltage();
+            int btriVoltage = 0;
 
             if(pChr) {
 
@@ -394,7 +357,7 @@ void loop() {
                 }
                 else
                 {
-                    pChr->setValue(std::to_string(batman->get_battery_voltage()));
+                    pChr->setValue(std::to_string(0));
                 }
 
                 log_i("%s",CCIDDesc->getStringValue());
@@ -427,15 +390,23 @@ void loop() {
         NimBLEService * pSWCSvc = pServer->getServiceByUUID(SWC_SRVI_UUID);
         if(pSWCSvc)
         {
-            NimBLECharacteristic* pSWCReadChr = pSWCSvc->getCharacteristic(SWC_READ_CHAR_UUID);
+            NimBLECharacteristic* pSWCReadChr = pSWCSvc->getCharacteristic(SWC_VWC_CHAR_UUID);
             if(pSWCReadChr->getSubscribedCount()>0)
             {
                 pSWCReadChr->notify(0);
             }
         }
 
+
+
+
     }
 
+    Serial.println(millis() - time_awoken );
+    if(millis() - time_awoken  >= (60*1000))
+    {
+        esp_deep_sleep_start();
+    }
 
     delay(2000);
 }

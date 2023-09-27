@@ -1,3 +1,4 @@
+/*
 #include "Arduino.h"
 #include "NonGeneric_Sensor.h"
 
@@ -180,3 +181,4 @@ void loop() {
         }
     }
 }
+*/

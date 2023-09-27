@@ -97,7 +97,7 @@ float  SPI_SWC_Sensor::read_sensor_v()
     return sensor_value;
 }
 
-float SMT100_Sensor::get_temperature() {
+float SMT100_Sensor::read_temperature() {
 
 
 }
@@ -123,11 +123,11 @@ String SMT100_Sensor::writeCommand(String command) {
     throw std::runtime_error("NO RESPONSE RECEIVED FROM SENSOR AFTER WRITING COMMAND");
 }
 
-String SMT100_Sensor::get_address() {
+String SMT100_Sensor::read_address() {
     return writeCommand("GetAddress!\r");
 }
 
-float SMT100_Sensor::get_VWC() {
+float SMT100_Sensor::read_VWC() {
     String command_to_send = "GetWaterContent!" + this->address + "\r";
     String response = writeCommand(command_to_send);
     return response.toFloat();
@@ -139,7 +139,7 @@ void SMT100_Sensor::begin() {
 
     if(address == FETCH_SMT100_SNSR_ADDRESS)
     {
-        this->address = get_address();
+        this->address = read_address();
     }
 
 

@@ -60,9 +60,9 @@ class SMT100_Sensor
 
         void begin();
         String writeCommand(String command);
-        float get_temperature();
-        float get_VWC();
-        String get_address();
+        float read_temperature();
+        float read_VWC();
+        String read_address();
 };
 
 /**

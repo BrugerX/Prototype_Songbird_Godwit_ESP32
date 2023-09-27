@@ -26,16 +26,16 @@ void tearDown(void) {
 void readSensor(void)
 {
 
-    SPI_sensor->turn_on_sensor();
+    //SPI_sensor->turn_on_sensor();
     delay(10000);
     log_e("Sensor turned on");
     delay(10000);
 
-    for(int i = 0; i<10;i++)
+    for(int i = 0; i<20000;i++)
     {
         float result = SPI_sensor->read_sensor_v();
         log_e("Result: %f",result);
-        delay(1000);
+        delay(100);
     }
 
 }
@@ -43,6 +43,7 @@ void readSensor(void)
 void takeSampleAverage(void)
 {
     log_e("Result of average: %f",SPI_sensor->take_sample_avg(1600,10));
+    SPI_sensor->turn_off_sensor();
 }
 
 void setup()
