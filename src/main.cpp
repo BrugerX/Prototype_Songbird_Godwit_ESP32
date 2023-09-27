@@ -3,7 +3,7 @@
 #include "NonGeneric_Sensor.h"
 #include <string>
 #include "BLEUtil.h"
-#include <coap_config_posix.h>
+#include "coap_config_posix.h"
 #include <time.h>
 #include "BLEMacros.h"
 
@@ -197,7 +197,7 @@ void setup() {
     Serial.println("Starting NimBLE Server");
 
     /** sets device name */
-    NimBLEDevice::init("Din Mor Er Grim");
+    NimBLEDevice::init(SERVER_DEVICE_NAME);
 
     /** Optional: set the transmit power, default is 3db */
 #ifdef ESP_PLATFORM
@@ -403,10 +403,7 @@ void loop() {
     }
 
     Serial.println(millis() - time_awoken );
-    if(millis() - time_awoken  >= (60*1000))
-    {
-        esp_deep_sleep_start();
-    }
+
 
     delay(2000);
 }
