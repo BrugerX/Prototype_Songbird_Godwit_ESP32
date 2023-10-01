@@ -7,7 +7,10 @@
 #include <time.h>
 #include "BLEMacros.h"
 
+#define S_B4_SLEEP 10
+#define S_2_SLEEP 10
 
+#define mS_TO_S_FACTOR 1000
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 long time_awoken;
 
@@ -238,7 +241,7 @@ void setup() {
     NimBLECharacteristic * pTempReadChar = pTempService->createCharacteristic(
             TEMP_READ_CHAR_UUID,
             NIMBLE_PROPERTY::READ|NIMBLE_PROPERTY::NOTIFY
-            );
+    );
 
     pTempReadChar->setValue(0);
     pTempReadChar->setCallbacks(&chrCallbacks);
@@ -246,7 +249,7 @@ void setup() {
     NimBLECharacteristic * pTempFreqChar = pTempService->createCharacteristic(
             TEMP_READ_FREQ_CHAR_UUID,
             NIMBLE_PROPERTY::READ|NIMBLE_PROPERTY::WRITE
-            );
+    );
     pTempFreqChar->setValue(360);
     pTempFreqChar->setCallbacks(&chrCallbacks);
     /**
@@ -262,7 +265,7 @@ void setup() {
     NimBLECharacteristic * pSWCVWCChr = pSWCService ->createCharacteristic(
             SWC_VWC_CHAR_UUID,
             NIMBLE_PROPERTY::READ|NIMBLE_PROPERTY::INDICATE
-            );
+    );
 
     NimBLECharacteristic * pSWCVWCTStampChr = pSWCService ->createCharacteristic(
             SWC_VWC_TSTAMP_CHAR_UUID,
@@ -402,8 +405,10 @@ void loop() {
 
     }
 
-    Serial.println(millis() - time_awoken );
 
+    if(millis() - time_awoken > S_B4_SLEEP*mS_TO_S_FACTOR)
+    {
+        esp_deep_sleep(uS_TO_S_FACTOR * S_2_SLEEP);
+    }
 
-    delay(2000);
 }
