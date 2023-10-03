@@ -19,10 +19,7 @@ public:
 
 SPIFFSFileManager::SPIFFSFileManager()
 {
-    //We have to mount the spiffs
-    if(!mount()){
-        throw std::runtime_error("COULD NOT MOUNT SPIFFS");
-    }
+    mount();
 }
 
 
@@ -69,7 +66,6 @@ bool SPIFFSFileManager::delete_file(const char * filePath){
     }
 }
 
-
 bool SPIFFSFileManager::load_file(const char * filePath, unsigned char * resultArray){
     File f1 = fileSystem.open(filePath);
     if(!f1 || f1.isDirectory()){
@@ -112,7 +108,6 @@ bool SPIFFSFileManager::load_file(const char * filePath, unsigned char * resultA
 
 }
 
-
 void SPIFFSFileManager::dismount() {
     fileSystem.end();
 }
@@ -123,4 +118,4 @@ bool SPIFFSFileManager::mount() {
         throw std::logic_error("SPIFFS failed to mount");
     }
     return true;
-}
+    }

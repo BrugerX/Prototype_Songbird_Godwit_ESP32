@@ -20,13 +20,28 @@ class FileManager;
 
 class SPIFFSFileManager{
 
+
 private:
 
     fs::SPIFFSFS fileSystem;
 
-public:
     SPIFFSFileManager();
+
     ~SPIFFSFileManager();
+
+public:
+
+
+    static SPIFFSFileManager& get_instance() {
+        static SPIFFSFileManager instance;
+        return instance;
+    }
+
+
+    SPIFFSFileManager(const SPIFFSFileManager&) = delete;             // Delete copy constructor
+    SPIFFSFileManager& operator=(const SPIFFSFileManager&) = delete;  // Delete copy assignment operator
+
+
     /**
      * Saves a file to the flash using SPIFFs
      *
@@ -68,6 +83,7 @@ public:
     * Will mount the current SPIFFSFileManager object unto the SPIFFS, if no other SPIFFSFileManager is mounted.
     */
     bool mount();
+
 };
 
 #endif //FAGPROJEKTLORA2023_FILEMANAGER_H
