@@ -83,6 +83,8 @@ bool SPIFFSFileManager::load_file(const char * filePath, unsigned char * resultA
 
     return true;
 
+
+
 }
 
 bool SPIFFSFileManager::load_file(const char * filePath, unsigned char * resultArray, size_t endIdx){
@@ -115,6 +117,7 @@ void SPIFFSFileManager::dismount() {
 //TODO: Default arguments ift. basepath + partition label
 bool SPIFFSFileManager::mount() {
     if(!fileSystem.begin(true)){
+        log_e("SPIFFS failed to mount");
         throw std::logic_error("SPIFFS failed to mount");
     }
     return true;

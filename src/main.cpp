@@ -3,6 +3,9 @@
 #include "Arduino.h"
 #include <BLEMacros.h>
 #include <BLEUtil.h>
+#include <FileManager.h>
+#include <UnsignedStringUtility.h>
+#include <DataLogging.h>
 
 void scanEndedCB(NimBLEScanResults results);
 
@@ -14,6 +17,11 @@ static unsigned long last_timestamp = millis();
 static long millis_passed = 0;
 static uint32_t scanTime = 0; /** 0 = scan forever */
 bool previously_connected = false;
+
+const char * test_path = "/abc";
+const char * test_string = "ABC";
+unsigned char * test_string_unsigned[3];
+unsigned char * test_output[3];
 
 NimBLEClient * pClient_SWC;
 
@@ -325,26 +333,13 @@ void setup (){
 
 
 void loop (){
-    /** Loop here until we find a device we want to connect to */
-    while(!doConnect){
-        delay(1);
-    }
 
 
+    SPIFFSFileManager * SPIFFS = &SPIFFSFileManager::get_instance();
 
 
-    if(!previously_connected && connectToServer())
-    {
-        Serial.println("Succesfully connected to server");
-        previously_connected = true;
-    }
-
-    NimBLEClient * pClient = NimBLEDevice::getClientByPeerAddress(advDevice->getAddress());
-    NimBLERemoteService * pSWCSrvi = pClient->getService(SWC_SRVI_UUID);
-    NimBLERemoteCharacteristic * pSWCChr = pSWCSrvi->getCharacteristic(SWC_VWC_CHAR_UUID);
-    delay(1000);
-    Serial.println(pSWCChr->readValue().c_str());
-
-
-
+    overwrite_value_array(3,test_path);
+    //SPIFFS->save_file(test_path,reinterpret_cast<const unsigned char *> (test_string));
+    SPIFFS->load_file(test_path, reinterpret_cast<unsigned char*>(test_output),2);
+    log_e("%s\n___%i",test_output, find_carriage_return_index((const unsigned char*)test_output,3));
 }
