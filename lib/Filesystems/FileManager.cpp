@@ -27,26 +27,28 @@ SPIFFSFileManager::~SPIFFSFileManager(){
 }
 
 bool SPIFFSFileManager::save_file(const char *filePath, const unsigned char *dataToWrite) {
-    Serial.printf("Writing file: %s\r\n", filePath);
+    log_e("Writing file: %s\r\n", filePath);
 
     File file = fileSystem.open((const char *)filePath, FILE_WRITE);
 
     //Failed to open
     if(!file){
+        log_e("− failed to open file for writing");
         throw std::logic_error("− failed to open file for writing");
     }
 
     //Written succesfully
-    if(file.print( (const char *) dataToWrite)){
-        Serial.println("− file written");
-        return true;
+    size_t write_result = file.print( (const char *) dataToWrite);
 
+    if(write_result){
+        log_e("− file written");
+        return true;
     }
     else //Failed to write
     {
+        log_e("%i − Write failed", write_result);
         throw std::runtime_error("− Write failed");
     }
-
 
 }
 
@@ -120,5 +122,6 @@ bool SPIFFSFileManager::mount() {
         log_e("SPIFFS failed to mount");
         throw std::logic_error("SPIFFS failed to mount");
     }
+
     return true;
-    }
+}

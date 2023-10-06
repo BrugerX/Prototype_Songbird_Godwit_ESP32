@@ -21,7 +21,11 @@ unsigned char * format_SWC(unsigned char* input);
 
 unsigned char* long_to_char_array(long value);
 
+unsigned char* format_long_to_char_array(unsigned char* value);
+
 unsigned char* format_and_convert_long(long value);
+
+unsigned char* format_fake(unsigned char*);
 
 void overwrite_value_array(int nr_chars, const char * path);
 
@@ -30,6 +34,11 @@ void print_unsigned_char_array_as_long(const char* path,int data_size);
 int find_carriage_return_index(const unsigned char* str, int size);
 
 bool insert_at_carriage_return_and_save(const char* path, unsigned char* insert_str, unsigned char* (*format_func)(unsigned char*), int insert_str_size, int value_array_size);
+
+unsigned char * format_timestamp(unsigned char* long_uchar_array);
+
+bool insert_at_carriage_return_and_save(const char* path, long insert_long, unsigned char* (*format_func)(unsigned char*), int insert_str_size, int value_array_size);
+
 
 unsigned char* format_value_for_FS(unsigned char *input, int input_size);
 

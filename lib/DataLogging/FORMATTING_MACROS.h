@@ -9,8 +9,9 @@
 #define END_OF_STRING_CHAR 11
 
 #define SIZE_OF_FORMATTING_HEADER 2
-#define SIZE_OF_SWC_AFTER_FORMATTING 6 //The combined size of the value and the indicating extra chars
+#define SIZE_OF_SWC_AFTER_FORMATTING 5 //The combined size of the value and the indicating extra chars
 #define SIZE_OF_TIMESTAMP_AFTER_FORMATTING 6
+#define SIZE_OF_TIMESTAMP_AFTER_TURNING_INTO_UCHAR 4
 
 #define SWC_VALUE_ARRAY_SIZE 4*6*2880
 #define TIMESTEP_VALUE_ARRAY_SIZE 4*6*2880

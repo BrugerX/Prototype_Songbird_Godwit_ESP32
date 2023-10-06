@@ -17,29 +17,24 @@ unsigned char* format_value_for_FS(unsigned char *input, int input_size) {
     formatted_input[input_size] = (unsigned char) END_OF_VALUE_CHAR;
     formatted_input[input_size + 1] = (unsigned char) END_OF_STRING_CHAR;
 
-
+    log_e("Formatted output: %s",formatted_input);
     return formatted_input;
 }
 
 unsigned char* long_to_char_array(long value) {
-    unsigned char* result = (unsigned char*)malloc(4 * sizeof(unsigned char));
-    if(result != nullptr) {
-        for(int i = 0; i < 4; i++) {
-            result[i] = (value >> (8 * i)) & 0xFF;
-        }
-    }
-    return result;
+    unsigned char* charArray = (unsigned char*)malloc(4 * sizeof(unsigned char));
+    // Extract each byte and store it in the char array
+    charArray[0] = (unsigned char) (value >> 24) & 0xFF;
+    charArray[1] = (unsigned char) (value >> 16) & 0xFF;
+    charArray[2] = (unsigned char) (value >> 8)  & 0xFF;
+    charArray[3] = (unsigned char)  value        & 0xFF;
+    return charArray;
 }
 
 
-unsigned char* format_and_convert_long(long value) {
-    unsigned char* char_array = long_to_char_array(value);
-    if(char_array == nullptr) {
-        return nullptr;
-    }
-    unsigned char* formatted_array = format_value_for_FS(char_array, 4);
-    free(char_array);
-    return formatted_array;
+unsigned char * format_timestamp(unsigned char* long_uchar_array)
+{
+    return format_value_for_FS(long_uchar_array,SIZE_OF_TIMESTAMP_AFTER_TURNING_INTO_UCHAR);
 }
 
 unsigned char * format_SWC(unsigned char* input) {
@@ -186,5 +181,54 @@ bool insert_at_carriage_return_and_save(const char* path, unsigned char* insert_
     free(formatted_insert_str);
     free(merged_str);
 
-    return false;
+    return true;
 }
+
+bool insert_at_carriage_return_and_save(const char* path, long insert_long, unsigned char* (*format_func)(unsigned char*), int insert_str_size, int value_array_size) {
+    SPIFFSFileManager& fileManager = SPIFFSFileManager::get_instance();
+
+    //Turn into unsigned char and format the long
+    unsigned char * insert_str = long_to_char_array(insert_long);
+    unsigned char * formatted_str = format_func(insert_str);
+    int formatted_str_size = SIZE_OF_FORMATTING_HEADER + insert_str_size +1;
+
+    //Load the value array from the file
+    unsigned char * V_array = (unsigned char *) malloc(sizeof(unsigned char) * value_array_size);
+    fileManager.load_file(path,V_array,value_array_size);
+
+    //Find the index to write to
+    int index_to_write_to = find_carriage_return_index(V_array,value_array_size);
+
+    if(index_to_write_to == -1)
+    {
+        log_e("COULD NOT FIND THE END OF THE ARRAY");
+        throw std::runtime_error("COULD NOT FIND THE END OF THE ARRAY");
+        return false;
+    }
+
+    //We need to have the final index as \0 in the value array
+    if(index_to_write_to > value_array_size - (formatted_str_size+2))
+    {
+        log_e("THE ARRAY IS FULL");
+        throw std::runtime_error("THE ARRAY IS FULL");
+        return false;
+    }
+
+    //Write to the array
+    for(int i = 0; i<formatted_str_size ; i++)
+    {
+        V_array[index_to_write_to + i] = formatted_str[i];
+    }
+
+    log_e("%s",V_array);
+
+    fileManager.save_file(path,V_array);
+    log_e("7");
+
+    // Free all dynamically allocated memory.
+    free(V_array);
+    log_e("8");
+
+    return true;
+}
+

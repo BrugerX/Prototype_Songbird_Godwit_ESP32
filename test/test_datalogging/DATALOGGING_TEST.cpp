@@ -47,11 +47,37 @@ void formating_stop_char(void)
 
 }
 
+void turning_long_into_unchar(void)
+{
+    long long_value = ('T' << 24) | ('e' << 16) | ('s' << 8) | 't';
+    unsigned char * long_uchar_array = long_to_char_array(long_value);
+    log_e("%s",long_uchar_array);
+    TEST_ASSERT_EQUAL((unsigned char)'T',long_uchar_array[0]);
+    TEST_ASSERT_EQUAL((unsigned char)'e',long_uchar_array[1]);
+    TEST_ASSERT_EQUAL((unsigned char)'s',long_uchar_array[2]);
+    TEST_ASSERT_EQUAL((unsigned char)'t',long_uchar_array[3]);
+}
+
+void turning_long_into_unchar_and_formatting(void)
+{
+
+    long long_value = ('T' << 24) | ('e' << 16) | ('s' << 8) | 't';
+    unsigned char * unformatted_long_uchar_array = long_to_char_array(long_value);
+    unsigned char * formatted_long_uchar_array = format_timestamp(unformatted_long_uchar_array);
+
+    log_e("%s",formatted_long_uchar_array);
+    TEST_ASSERT_EQUAL((unsigned char)'T',formatted_long_uchar_array[0]);
+    TEST_ASSERT_EQUAL((unsigned char)'e',formatted_long_uchar_array[1]);
+    TEST_ASSERT_EQUAL((unsigned char)'s',formatted_long_uchar_array[2]);
+    TEST_ASSERT_EQUAL((unsigned char)'t',formatted_long_uchar_array[3]);
+    TEST_ASSERT_EQUAL((unsigned char) END_OF_VALUE_CHAR,formatted_long_uchar_array[4]);
+    TEST_ASSERT_EQUAL((unsigned char) END_OF_STRING_CHAR,formatted_long_uchar_array[5]);
+}
+
 void writing_and_reading_SWC(void)
 {
-    unsigned long start_time = millis();
-    int nr_SWC_values = 1;
-    int size_of_Varray = SWC_VALUE_ARRAY_SIZE;
+    int nr_SWC_values = 2;
+    int size_of_Varray = nr_SWC_values*6+2;
     const char * test_path = "/SWC_w_r_test";
 
     overwrite_value_array(size_of_Varray,test_path);
@@ -73,9 +99,58 @@ void writing_and_reading_SWC(void)
 
 
     fileMan.load_file(test_path,Varray,size_of_Varray-1);
+
     log_e("%s",Varray);
-    log_e("%lu",millis()-start_time);
+    free(Varray);
+
 }
+
+
+void writing_and_reading_long(void)
+{
+    int nr_long_values = 2;
+    int size_of_Varray = nr_long_values * SIZE_OF_TIMESTAMP_AFTER_FORMATTING + 9;
+    const char * test_path = "/longwtest";
+
+    //Initializing value array on flash
+    overwrite_value_array(size_of_Varray, test_path);
+
+    //Getting the write values ready
+    long raw_long_values[] = {12345678L, 87654321L};
+    unsigned char * Varray = (unsigned char *) malloc(sizeof(unsigned char) * size_of_Varray);
+
+
+    for(int i = 0; i < nr_long_values; i++)
+    {
+
+        bool success = insert_at_carriage_return_and_save(
+                test_path,
+                raw_long_values[i],
+                &format_timestamp,
+                SIZE_OF_TIMESTAMP_AFTER_TURNING_INTO_UCHAR,
+                size_of_Varray
+        );
+
+
+        if(!success)
+        {
+            log_e("Insertion and save operation failed");
+            free(Varray);
+            return;
+        }
+    }
+
+    if(!fileMan.load_file(test_path, Varray, size_of_Varray - 1))
+    {
+        log_e("Loading file failed");
+        free(Varray);
+        return;
+    }
+
+    log_e("%s", Varray);
+
+}
+
 
 
 void setup()
@@ -86,8 +161,11 @@ void setup()
     //DON'T PUT ANYTHING BEFORE THIS EXCEPT FOR DELAY!!!!
     UNITY_BEGIN(); //Define stuff after this
 
-    RUN_TEST(formating_stop_char);
-    RUN_TEST(writing_and_reading_SWC);
+    //RUN_TEST(formating_stop_char);
+    //RUN_TEST(writing_and_reading_SWC);
+    RUN_TEST(turning_long_into_unchar);
+    //RUN_TEST(turning_long_into_unchar_and_formatting);
+    RUN_TEST(writing_and_reading_long);
     UNITY_END(); // stop unit testing
 }
 

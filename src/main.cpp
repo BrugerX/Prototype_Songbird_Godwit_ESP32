@@ -6,6 +6,7 @@
 #include <FileManager.h>
 #include <UnsignedStringUtility.h>
 #include <DataLogging.h>
+#include <Effortless_SPIFFS.h>
 
 void scanEndedCB(NimBLEScanResults results);
 
@@ -24,7 +25,7 @@ unsigned char * test_string_unsigned[3];
 unsigned char * test_output[3];
 
 NimBLEClient * pClient_SWC;
-
+eSPIFFS * eSpiffs = new eSPIFFS();
 
 /**  None of these are required as they will be handled by the library with defaults. **
  **                       Remove as you see fit for your needs                        */
@@ -282,6 +283,14 @@ bool connectToServer() {
 void setup (){
     Serial.begin(115200);
     Serial.println("Starting NimBLE Client");
+
+    /** Check to see if the SPIFFS has been configured correctly **/
+    if(!eSpiffs->checkFlashConfig())
+    {
+        log_e("SPIFFS NOT CONFIGURED CORRECTLY");
+        throw std::runtime_error("SPIFFS NOT CONFIGURED CORRECTLY");
+    }
+
     /** Initialize NimBLE, no device name spcified as we are not advertising */
     NimBLEDevice::init(BLE_CLIENT_NAME);
 
@@ -335,11 +344,6 @@ void setup (){
 void loop (){
 
 
-    SPIFFSFileManager * SPIFFS = &SPIFFSFileManager::get_instance();
+    log_e("%i",eSpiffs->checkFlashConfig());
 
-
-    overwrite_value_array(3,test_path);
-    //SPIFFS->save_file(test_path,reinterpret_cast<const unsigned char *> (test_string));
-    SPIFFS->load_file(test_path, reinterpret_cast<unsigned char*>(test_output),2);
-    log_e("%s\n___%i",test_output, find_carriage_return_index((const unsigned char*)test_output,3));
 }
