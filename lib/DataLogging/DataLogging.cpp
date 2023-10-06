@@ -32,6 +32,13 @@ unsigned char* long_to_char_array(long value) {
 }
 
 
+long char_array_to_long(unsigned char* charArray) {
+    return ((long)charArray[0] << 24) |
+           ((long)charArray[1] << 16) |
+           ((long)charArray[2] << 8)  |
+           (long)charArray[3];
+}
+
 unsigned char * format_timestamp(unsigned char* long_uchar_array)
 {
     return format_value_for_FS(long_uchar_array,SIZE_OF_TIMESTAMP_AFTER_TURNING_INTO_UCHAR);
@@ -127,107 +134,67 @@ void print_unsigned_char_array_as_long(const char* path,int data_size) {
     free(data);
 }
 
-bool insert_at_carriage_return_and_save(const char* path, unsigned char* insert_str, unsigned char* (*format_func)(unsigned char*), int insert_str_size, int value_array_size) {
-    SPIFFSFileManager& fileManager = SPIFFSFileManager::get_instance();
+bool insert_at_carriage_return_and_save(const char* path, unsigned char * input_string, int insert_string_size, int value_array_size , int index, int * incrementer) {
+    SPIFFSFileManager& fileMan = SPIFFSFileManager::get_instance();
 
-    // Load the string from the file.
-    unsigned char *loaded_str = (unsigned char *) malloc(sizeof(unsigned char)*value_array_size);
-    fileManager.load_file(path,loaded_str,value_array_size-1);  // Assume load_file function exists and returns dynamically allocated memory.
+    //Load the string
+    unsigned char * value_array = (unsigned char *) malloc(sizeof(unsigned char )*value_array_size);
+    fileMan.load_file(path,value_array,value_array_size -1);
 
-    if(loaded_str == nullptr) {
-        return false;  // Error handling: file couldn't be loaded.
-    }
-
-    int carriage_return_index = find_carriage_return_index(loaded_str,value_array_size);
-
-    if( carriage_return_index == value_array_size -1)
+    //Write to the string
+    for(int i = 0;i<insert_string_size;i++)
     {
-        log_e("Tried writing value array, but the value array is full");
-        throw std::runtime_error("ARRAY IS FULL");
+        value_array[index + i] = input_string[i];
     }
 
-    if(carriage_return_index == -1) {
-        free(loaded_str);
-        log_e("Cannot find END_OF_STRING_CHAR, sting: %s",loaded_str);
-        return false;  // Error handling: "\r" not found.
+    int success = 0;
+    int retries = 0;
+
+    while (retries < MAX_RETRIES) {
+        // Try to save the file
+        success = fileMan.save_file(path, value_array);
+
+        // Check if save was successful
+        if (success) {
+            printf("File saved successfully.\n");
+            break;
+        } else {
+            printf("Failed to save the file. Retrying in 0.5 seconds...\n");
+            vTaskDelay(500 / portTICK_PERIOD_MS); // 0.5s delay
+            retries++;
+        }
     }
+    //free value array
+    free(value_array);
 
-    int insert_str_formatted_size = insert_str_size + SIZE_OF_FORMATTING_HEADER;
-    unsigned char* formatted_insert_str = format_func(insert_str);
-    if(formatted_insert_str == nullptr) {
-        free(loaded_str);
-        return false;  // Error handling: formatting failed.
-    }
-
-
-    // Create a new string to store the merged content.
-    unsigned char* merged_str = (unsigned char*)malloc(strlen((char*)loaded_str) + insert_str_formatted_size + 1);
-    if(merged_str == nullptr) {
-        free(loaded_str);
-        free(formatted_insert_str);
-        return false;  // Error handling: memory allocation failed.
-    }
-
-    // Merge the strings.
-    memcpy(merged_str, loaded_str, carriage_return_index);
-    memcpy(merged_str + carriage_return_index, formatted_insert_str, insert_str_formatted_size);
-    strcpy((char*)(merged_str + carriage_return_index + insert_str_formatted_size), (char*)(loaded_str + carriage_return_index));
-
-    // Save the new string back to the file.
-    fileManager.save_file(path, merged_str);  // Assume save_file function exists.
-
-    // Free all dynamically allocated memory.
-    free(loaded_str);
-    free(formatted_insert_str);
-    free(merged_str);
+    incrementer += 1;
 
     return true;
 }
 
-bool insert_at_carriage_return_and_save(const char* path, long insert_long, unsigned char* (*format_func)(unsigned char*), int insert_str_size, int value_array_size) {
-    SPIFFSFileManager& fileManager = SPIFFSFileManager::get_instance();
+bool insert_at_carriage_return_and_save(const char* path, long insert_long, int insert_string_size, int value_array_size , int index, int * incrementer) {
+    SPIFFSFileManager& fileMan = SPIFFSFileManager::get_instance();
 
-    //Turn into unsigned char and format the long
-    unsigned char * insert_str = long_to_char_array(insert_long);
-    unsigned char * formatted_str = format_func(insert_str);
-    int formatted_str_size = SIZE_OF_FORMATTING_HEADER + insert_str_size +1;
+    //First convert the long to a char
+    unsigned char * input_string = long_to_char_array(insert_long);
 
-    //Load the value array from the file
-    unsigned char * V_array = (unsigned char *) malloc(sizeof(unsigned char) * value_array_size);
-    fileManager.load_file(path,V_array,value_array_size);
+    //Load the string
+    unsigned char * value_array = (unsigned char *) malloc(sizeof(unsigned char )*value_array_size);
+    fileMan.load_file(path,value_array,value_array_size -1);
 
-    //Find the index to write to
-    int index_to_write_to = find_carriage_return_index(V_array,value_array_size);
-
-    if(index_to_write_to == -1)
+    //Write to the string
+    for(int i = 0;i<insert_string_size;i++)
     {
-        log_e("COULD NOT FIND THE END OF THE ARRAY");
-        throw std::runtime_error("COULD NOT FIND THE END OF THE ARRAY");
-        return false;
+        value_array[index + i] = input_string[i];
     }
 
-    //We need to have the final index as \0 in the value array
-    if(index_to_write_to > value_array_size - (formatted_str_size+2))
-    {
-        log_e("THE ARRAY IS FULL");
-        throw std::runtime_error("THE ARRAY IS FULL");
-        return false;
-    }
+    //Save the string
+    fileMan.save_file(path,value_array);
 
-    //Write to the array
-    for(int i = 0; i<formatted_str_size ; i++)
-    {
-        V_array[index_to_write_to + i] = formatted_str[i];
-    }
+    //free value array
+    free(value_array);
 
-    log_e("%s",V_array);
-
-    fileManager.save_file(path,V_array);
-    log_e("7");
-
-    // Free all dynamically allocated memory.
-    free(V_array);
-    log_e("8");
+    (*incrementer)++;
 
     return true;
 }

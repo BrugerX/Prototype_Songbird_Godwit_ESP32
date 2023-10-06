@@ -5,6 +5,7 @@
 #ifndef PBT_DATALOGGING_H
 #define PBT_DATALOGGING_H
 
+#include <Effortless_SPIFFS.h>
 #include <FileManager.h>
 #include "FORMATTING_MACROS.h"
 #include <cstdlib>
@@ -33,12 +34,15 @@ void print_unsigned_char_array_as_long(const char* path,int data_size);
 
 int find_carriage_return_index(const unsigned char* str, int size);
 
-bool insert_at_carriage_return_and_save(const char* path, unsigned char* insert_str, unsigned char* (*format_func)(unsigned char*), int insert_str_size, int value_array_size);
-
 unsigned char * format_timestamp(unsigned char* long_uchar_array);
 
-bool insert_at_carriage_return_and_save(const char* path, long insert_long, unsigned char* (*format_func)(unsigned char*), int insert_str_size, int value_array_size);
+bool insert_at_carriage_return_and_save(const char* path, long insert_long, int insert_string_size, int value_array_size , int index, int * incrementer);
 
+
+bool insert_at_carriage_return_and_save(const char* path, unsigned char * insert_long, int insert_string_size, int value_array_size , int index, int * incrementer);
+
+
+long char_array_to_long(unsigned char* charArray);
 
 unsigned char* format_value_for_FS(unsigned char *input, int input_size);
 

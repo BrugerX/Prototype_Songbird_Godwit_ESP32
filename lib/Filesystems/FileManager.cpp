@@ -41,13 +41,15 @@ bool SPIFFSFileManager::save_file(const char *filePath, const unsigned char *dat
     size_t write_result = file.print( (const char *) dataToWrite);
 
     if(write_result){
-        log_e("− file written");
+        log_i("− file written");
+        file.close();
         return true;
     }
     else //Failed to write
     {
         log_e("%i − Write failed", write_result);
-        throw std::runtime_error("− Write failed");
+        //throw std::runtime_error("− Write failed");
+        return false;
     }
 
 }

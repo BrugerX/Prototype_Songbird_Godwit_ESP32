@@ -25,7 +25,7 @@ unsigned char * test_string_unsigned[3];
 unsigned char * test_output[3];
 
 NimBLEClient * pClient_SWC;
-eSPIFFS * eSpiffs = new eSPIFFS();
+SPIFFSFileManager& fileMane = SPIFFSFileManager::get_instance();
 
 /**  None of these are required as they will be handled by the library with defaults. **
  **                       Remove as you see fit for your needs                        */
@@ -283,13 +283,7 @@ bool connectToServer() {
 void setup (){
     Serial.begin(115200);
     Serial.println("Starting NimBLE Client");
-
-    /** Check to see if the SPIFFS has been configured correctly **/
-    if(!eSpiffs->checkFlashConfig())
-    {
-        log_e("SPIFFS NOT CONFIGURED CORRECTLY");
-        throw std::runtime_error("SPIFFS NOT CONFIGURED CORRECTLY");
-    }
+    fileMane.mount();
 
     /** Initialize NimBLE, no device name spcified as we are not advertising */
     NimBLEDevice::init(BLE_CLIENT_NAME);
@@ -338,12 +332,31 @@ void setup (){
      *  Optional callback for when scanning stops.
      */
     pScan->start(0, scanEndedCB);
+
+    int timestep_writes = 0;
+    int size_of_V_array = 20;
+    unsigned char v_array[size_of_V_array];
+    long time_now = 0x41424344L;
+    insert_at_carriage_return_and_save(test_path,time_now,SIZE_OF_TIMESTAMP_AFTER_TURNING_INTO_UCHAR,size_of_V_array,0,&timestep_writes);
+    fileMane.load_file(test_path,v_array,size_of_V_array-1);
+    log_e("%s",v_array);
+    unsigned char long_uarray[4];
+    for(int i = 0; i<4; i++)
+    {
+        long_uarray[i] = v_array[i];
+    }
+
+    printf("Char Array: %c%c%c%c\n", long_uarray[0], long_uarray[1], long_uarray[2], long_uarray[3]);
+
+
+    long time_now_2 = char_array_to_long(long_uarray);
+
+    log_e("%ld",time_now_2);
+
 }
 
 
 void loop (){
 
-
-    log_e("%i",eSpiffs->checkFlashConfig());
 
 }

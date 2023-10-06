@@ -77,6 +77,7 @@ void turning_long_into_unchar_and_formatting(void)
 void writing_and_reading_SWC(void)
 {
     int nr_SWC_values = 2;
+    int incrementer = 0;
     int size_of_Varray = nr_SWC_values*6+2;
     const char * test_path = "/SWC_w_r_test";
 
@@ -94,7 +95,7 @@ void writing_and_reading_SWC(void)
 
     for(int i = 0; i<nr_SWC_values; i++)
     {
-        insert_at_carriage_return_and_save(test_path,raw_SWC_values[i%1], &format_SWC,SIZE_OF_SWC_AFTER_FORMATTING,size_of_Varray);
+        insert_at_carriage_return_and_save(test_path,raw_SWC_values[i],5,size_of_Varray,incrementer*5,&incrementer);
     }
 
 
@@ -108,46 +109,34 @@ void writing_and_reading_SWC(void)
 
 void writing_and_reading_long(void)
 {
-    int nr_long_values = 2;
+    int nr_long_values = 4;
+    int incrementer = 0;
     int size_of_Varray = nr_long_values * SIZE_OF_TIMESTAMP_AFTER_FORMATTING + 9;
     const char * test_path = "/longwtest";
 
-    //Initializing value array on flash
-    overwrite_value_array(size_of_Varray, test_path);
 
     //Getting the write values ready
-    long raw_long_values[] = {12345678L, 87654321L};
+    long raw_long_values[] = {0x41424344L, 0x41424344L,0x41424344L,0x41424344L};
     unsigned char * Varray = (unsigned char *) malloc(sizeof(unsigned char) * size_of_Varray);
 
 
     for(int i = 0; i < nr_long_values; i++)
     {
 
+
         bool success = insert_at_carriage_return_and_save(
                 test_path,
                 raw_long_values[i],
-                &format_timestamp,
-                SIZE_OF_TIMESTAMP_AFTER_TURNING_INTO_UCHAR,
-                size_of_Varray
-        );
+                SIZE_OF_TIMESTAMP_AFTER_TURNING_INTO_UCHAR,size_of_Varray,incrementer*4,&incrementer);
 
-
-        if(!success)
-        {
-            log_e("Insertion and save operation failed");
-            free(Varray);
-            return;
-        }
     }
 
-    if(!fileMan.load_file(test_path, Varray, size_of_Varray - 1))
+    fileMan.load_file(test_path, Varray, size_of_Varray - 1);
+
+    for(int i = 0; i<nr_long_values*4;i++)
     {
-        log_e("Loading file failed");
-        free(Varray);
-        return;
+        log_e("%c",Varray[i]);
     }
-
-    log_e("%s", Varray);
 
 }
 
@@ -161,10 +150,8 @@ void setup()
     //DON'T PUT ANYTHING BEFORE THIS EXCEPT FOR DELAY!!!!
     UNITY_BEGIN(); //Define stuff after this
 
-    //RUN_TEST(formating_stop_char);
     //RUN_TEST(writing_and_reading_SWC);
-    RUN_TEST(turning_long_into_unchar);
-    //RUN_TEST(turning_long_into_unchar_and_formatting);
+    //RUN_TEST(turning_long_into_unchar);
     RUN_TEST(writing_and_reading_long);
     UNITY_END(); // stop unit testing
 }
