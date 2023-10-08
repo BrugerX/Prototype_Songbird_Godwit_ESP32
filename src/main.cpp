@@ -6,23 +6,13 @@
 #include <FileManager.h>
 #include <UnsignedStringUtility.h>
 #include <DataLogging.h>
-#include <Effortless_SPIFFS.h>
 
 void scanEndedCB(NimBLEScanResults results);
 
 static NimBLEAdvertisedDevice* advDevice;
 
 static bool doConnect = false;
-static String last_read;
-static unsigned long last_timestamp = millis();
-static long millis_passed = 0;
 static uint32_t scanTime = 0; /** 0 = scan forever */
-bool previously_connected = false;
-
-const char * test_path = "/abc";
-const char * test_string = "ABC";
-unsigned char * test_string_unsigned[3];
-unsigned char * test_output[3];
 
 NimBLEClient * pClient_SWC;
 SPIFFSFileManager& fileMane = SPIFFSFileManager::get_instance();
@@ -45,8 +35,6 @@ class ClientCallbacks : public NimBLEClientCallbacks {
         Serial.print(pClient->getPeerAddress().toString().c_str());
         Serial.println(" Disconnected - Starting scan - starting doConnect while loop");
         pClient->disconnect();
-        previously_connected = false;
-        doConnect = false;
         NimBLEDevice::getScan()->start(scanTime, scanEndedCB);
     };
 
@@ -271,9 +259,6 @@ bool connectToServer() {
         NimBLERemoteCharacteristic * VWC_chr = pSvc->getCharacteristic(SWC_VWC_CHAR_UUID);
         log_e("This is the current VWC water level:");
         Serial.println(VWC_chr->readValue().size());
-        last_read = (String) VWC_chr->readValue().c_str();
-        unsigned long time_passed = millis() - last_timestamp;
-        millis_passed += time_passed;
     }
 
 
