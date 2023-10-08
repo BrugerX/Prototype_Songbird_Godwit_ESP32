@@ -333,26 +333,6 @@ void setup (){
      */
     pScan->start(0, scanEndedCB);
 
-    int timestep_writes = 0;
-    int size_of_V_array = 20;
-    unsigned char v_array[size_of_V_array];
-    long time_now = 0x41424344L;
-    insert_at_carriage_return_and_save(test_path,time_now,SIZE_OF_TIMESTAMP_AFTER_TURNING_INTO_UCHAR,size_of_V_array,0,&timestep_writes);
-    fileMane.load_file(test_path,v_array,size_of_V_array-1);
-    log_e("%s",v_array);
-    unsigned char long_uarray[4];
-    for(int i = 0; i<4; i++)
-    {
-        long_uarray[i] = v_array[i];
-    }
-
-    printf("Char Array: %c%c%c%c\n", long_uarray[0], long_uarray[1], long_uarray[2], long_uarray[3]);
-
-
-    long time_now_2 = char_array_to_long(long_uarray);
-
-    log_e("%ld",time_now_2);
-
 }
 
 

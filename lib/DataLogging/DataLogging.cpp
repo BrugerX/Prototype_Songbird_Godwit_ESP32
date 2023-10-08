@@ -4,22 +4,6 @@
 
 #include "DataLogging.h"
 
-unsigned char* format_value_for_FS(unsigned char *input, int input_size) {
-    int final_size = input_size + 2;
-    unsigned char* formatted_input = (unsigned char*) malloc(final_size * sizeof(unsigned char));
-
-    // Check if memory was allocated successfully
-
-    for (int i = 0; i < input_size; i++) {
-        formatted_input[i] = input[i];
-    }
-
-    formatted_input[input_size] = (unsigned char) END_OF_VALUE_CHAR;
-    formatted_input[input_size + 1] = (unsigned char) END_OF_STRING_CHAR;
-
-    log_e("Formatted output: %s",formatted_input);
-    return formatted_input;
-}
 
 unsigned char* long_to_char_array(long value) {
     unsigned char* charArray = (unsigned char*)malloc(4 * sizeof(unsigned char));
@@ -37,11 +21,6 @@ long char_array_to_long(unsigned char* charArray) {
            ((long)charArray[1] << 16) |
            ((long)charArray[2] << 8)  |
            (long)charArray[3];
-}
-
-unsigned char * format_timestamp(unsigned char* long_uchar_array)
-{
-    return format_value_for_FS(long_uchar_array,SIZE_OF_TIMESTAMP_AFTER_TURNING_INTO_UCHAR);
 }
 
 unsigned char * format_SWC(unsigned char* input) {
@@ -68,21 +47,10 @@ unsigned char * format_SWC(unsigned char* input) {
 
     // Note: The implementation of format_value_for_FS is unknown from this snippet.
     // Ensure its definition is correct and does handle memory management well.
-    return format_value_for_FS(output, 5);
+    return output;
     // Assuming third parameter is needed based on provided snippet in previous messages.
 }
 
-
-int find_carriage_return_index(const unsigned char* str, int size) {
-    int i = 0;
-    for(int j = 0; j<size;j++) {
-        if(str[i] == END_OF_STRING_CHAR) { // Using the macro here
-            return i;
-        }
-        i++;
-    }
-    return -1;  // END_OF_STRING_CHAR not found
-}
 
 
 
@@ -90,8 +58,14 @@ void overwrite_value_array(int nr_chars, const char * path)
 {
     SPIFFSFileManager& fileManager = SPIFFSFileManager::get_instance();
     unsigned char * value_array = (unsigned char *) malloc(sizeof(char)*nr_chars);
-    value_array[0] = END_OF_STRING_CHAR;
-    value_array[nr_chars-1] = '\0';
+
+    for(int i = 0; i<nr_chars;i++)
+    {
+        value_array[i] = 108;
+    }
+
+    value_array[nr_chars-1] = 0;
+
     fileManager.save_file(path,value_array);
     free(value_array);
 }
