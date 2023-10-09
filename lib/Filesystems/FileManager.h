@@ -53,6 +53,8 @@ public:
 
     bool delete_file(const char * filePath);
 
+    bool save_file_with_retries(const char *filePath, const unsigned char *dataToWrite, int attempts, int mS_delay_between);
+
     /**
      * Warning: Do not use this with strings. It will append random characters at the end of the string array.
      * Instead use the load_file version, where you have to manually enter the ending index of the string.

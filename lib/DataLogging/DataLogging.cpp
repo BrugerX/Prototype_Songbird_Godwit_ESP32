@@ -24,7 +24,7 @@ long char_array_to_long(unsigned char* charArray) {
 }
 
 unsigned char * format_SWC(unsigned char* input) {
-    unsigned char output[5];
+    unsigned char* output = new unsigned char[5];
 
     // Ensure output is cleared/initialized
     for(int i = 0; i < 5; i++) {
@@ -45,17 +45,15 @@ unsigned char * format_SWC(unsigned char* input) {
         output[4] = input[4];
     }
 
-    // Note: The implementation of format_value_for_FS is unknown from this snippet.
-    // Ensure its definition is correct and does handle memory management well.
     return output;
-    // Assuming third parameter is needed based on provided snippet in previous messages.
 }
 
 
 
 
-void overwrite_value_array(int nr_chars, const char * path)
+bool overwrite_value_array(int nr_chars, const char * path)
 {
+    bool result = false;
     SPIFFSFileManager& fileManager = SPIFFSFileManager::get_instance();
     unsigned char * value_array = (unsigned char *) malloc(sizeof(char)*nr_chars);
 
@@ -66,8 +64,10 @@ void overwrite_value_array(int nr_chars, const char * path)
 
     value_array[nr_chars-1] = 0;
 
-    fileManager.save_file(path,value_array);
+    result = fileManager.save_file_with_retries(path, value_array, MAX_DATALOGGING_RETRIES, mS_TIME_BETWEEN_DATALOGS);
     free(value_array);
+
+    return result;
 }
 
 void print_unsigned_char_array_as_long(const char* path,int data_size) {
@@ -112,7 +112,7 @@ bool insert_at_carriage_return_and_save(const char* path, unsigned char * input_
     SPIFFSFileManager& fileMan = SPIFFSFileManager::get_instance();
 
     //Load the string
-    unsigned char * value_array = (unsigned char *) malloc(sizeof(unsigned char )*value_array_size);
+    auto value_array = (unsigned char *) malloc(sizeof(unsigned char ) * value_array_size);
     fileMan.load_file(path,value_array,value_array_size -1);
 
     //Write to the string
@@ -121,27 +121,21 @@ bool insert_at_carriage_return_and_save(const char* path, unsigned char * input_
         value_array[index + i] = input_string[i];
     }
 
-    int success = 0;
-    int retries = 0;
+    int success =0;
 
-    while (retries < MAX_RETRIES) {
-        // Try to save the file
-        success = fileMan.save_file(path, value_array);
+    success = fileMan.save_file_with_retries(path, value_array, MAX_DATALOGGING_RETRIES, mS_TIME_BETWEEN_DATALOGS);
 
-        // Check if save was successful
-        if (success) {
-            printf("File saved successfully.\n");
-            break;
-        } else {
-            printf("Failed to save the file. Retrying in 0.5 seconds...\n");
-            vTaskDelay(500 / portTICK_PERIOD_MS); // 0.5s delay
-            retries++;
-        }
-    }
-    //free value array
+
     free(value_array);
 
-    incrementer += 1;
+    if(!success)
+    {
+        log_e("Failed to write array with path %s",path);
+        throw std::runtime_error("Failed to write array");
+    }
+
+
+    (*incrementer)++;
 
     return true;
 }
@@ -156,17 +150,27 @@ bool insert_at_carriage_return_and_save(const char* path, long insert_long, int 
     unsigned char * value_array = (unsigned char *) malloc(sizeof(unsigned char )*value_array_size);
     fileMan.load_file(path,value_array,value_array_size -1);
 
+
     //Write to the string
     for(int i = 0;i<insert_string_size;i++)
     {
         value_array[index + i] = input_string[i];
     }
 
-    //Save the string
-    fileMan.save_file(path,value_array);
+    int success = 0;
 
-    //free value array
+    success = fileMan.save_file_with_retries(path, value_array, MAX_DATALOGGING_RETRIES, mS_TIME_BETWEEN_DATALOGS);
+
     free(value_array);
+
+    if(!success)
+    {
+        free(value_array);
+        log_e("Failed to write array with path %s",path);
+        throw std::runtime_error("Failed to write array");
+
+
+    }
 
     (*incrementer)++;
 

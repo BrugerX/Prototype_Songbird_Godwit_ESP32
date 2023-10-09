@@ -6,6 +6,7 @@
 #include <FileManager.h>
 #include <UnsignedStringUtility.h>
 #include <DataLogging.h>
+#include <STATES_MACROS.h>
 
 void scanEndedCB(NimBLEScanResults results);
 
@@ -13,6 +14,17 @@ static NimBLEAdvertisedDevice* advDevice;
 
 static bool doConnect = false;
 static uint32_t scanTime = 0; /** 0 = scan forever */
+static bool print_on = false;
+static bool xperiment_start = true;
+
+static int SWC_counter = 0;
+static int timestep_count = 0;
+
+static unsigned char * SWC_read = nullptr;
+static long time_last_read = 0L;
+unsigned long time_start = millis();
+
+static int state = 0;
 
 NimBLEClient * pClient_SWC;
 SPIFFSFileManager& fileMane = SPIFFSFileManager::get_instance();
@@ -33,7 +45,7 @@ class ClientCallbacks : public NimBLEClientCallbacks {
 
     void onDisconnect(NimBLEClient* pClient) {
         Serial.print(pClient->getPeerAddress().toString().c_str());
-        Serial.println(" Disconnected - Starting scan - starting doConnect while loop");
+        Serial.println(" Disconnected ");
         pClient->disconnect();
         NimBLEDevice::getScan()->start(scanTime, scanEndedCB);
     };
@@ -197,68 +209,15 @@ bool connectToServer() {
     NimBLERemoteCharacteristic* pChr = nullptr;
     NimBLERemoteDescriptor* pDsc = nullptr;
 
-    pSvc = pClient->getService("DEAD");
-    if(pSvc) {     /** make sure it's not null */
-        pChr = pSvc->getCharacteristic("BEEF");
-
-        if(pChr) {     /** make sure it's not null */
-            if(pChr->canRead()) {
-                Serial.print(pChr->getUUID().toString().c_str());
-                Serial.print(" Value: ");
-                Serial.println(pChr->readValue().c_str());
-            }
-
-            if(pChr->canWrite()) {
-                if(pChr->writeValue("Tasty")) {
-                    Serial.print("Wrote new value to: ");
-                    Serial.println(pChr->getUUID().toString().c_str());
-                }
-                else {
-                    /** Disconnect if write failed */
-                    pClient->disconnect();
-                    return false;
-                }
-
-                if(pChr->canRead()) {
-                    Serial.print("The value of: ");
-                    Serial.print(pChr->getUUID().toString().c_str());
-                    Serial.print(" is now: ");
-                    Serial.println(pChr->readValue().c_str());
-                }
-            }
-
-            /** registerForNotify() has been deprecated and replaced with subscribe() / unsubscribe().
-             *  Subscribe parameter defaults are: notifications=true, notifyCallback=nullptr, response=false.
-             *  Unsubscribe parameter defaults are: response=false.
-             */
-            if(pChr->canNotify()) {
-                //if(!pChr->registerForNotify(notifyCB)) {
-                if(!pChr->subscribe(true, notifyCB)) {
-                    /** Disconnect if subscribe failed */
-                    pClient->disconnect();
-                    return false;
-                }
-            }
-            else if(pChr->canIndicate()) {
-                /** Send false as first argument to subscribe to indications instead of notifications */
-                //if(!pChr->registerForNotify(notifyCB, false)) {
-                if(!pChr->subscribe(false, notifyCB)) {
-                    /** Disconnect if subscribe failed */
-                    pClient->disconnect();
-                    return false;
-                }
-            }
-        }
-
-    } else {
-        Serial.println("DEAD service not found.");
-    }
-
     pSvc = pClient->getService(SWC_SRVI_UUID);
     if(pSvc){
         NimBLERemoteCharacteristic * VWC_chr = pSvc->getCharacteristic(SWC_VWC_CHAR_UUID);
-        log_e("This is the current VWC water level:");
-        Serial.println(VWC_chr->readValue().size());
+        String SWC_read_string = (String) VWC_chr->readValue().c_str();
+        SWC_read = format_SWC( (unsigned char*) SWC_read_string.c_str());
+        //SWC_read = const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>("1.23"));
+        time_last_read = 0x41424344L;
+        printf("Will try to save the SWC: %c%c%c%c and the time last read %ld \n",SWC_read[0],SWC_read[1],SWC_read[2],SWC_read[3],SWC_read[4],time_last_read);
+
     }
 
 
@@ -269,6 +228,11 @@ void setup (){
     Serial.begin(115200);
     Serial.println("Starting NimBLE Client");
     fileMane.mount();
+
+    delay(500);
+    overwrite_value_array(SWC_VALUE_ARRAY_SIZE,SWC_VALUE_ARRAY_PATH);
+    delay(1500);
+    overwrite_value_array(TIMESTEP_VALUE_ARRAY_SIZE,TIMESTEP_VALUE_ARRAY_PATH);
 
     /** Initialize NimBLE, no device name spcified as we are not advertising */
     NimBLEDevice::init(BLE_CLIENT_NAME);
@@ -316,12 +280,58 @@ void setup (){
     /** Start scanning for advertisers for the scan time specified (in seconds) 0 = forever
      *  Optional callback for when scanning stops.
      */
-    pScan->start(0, scanEndedCB);
-
 }
 
 
 void loop (){
+
+    switch(state)
+    {
+        case STATE_IDLE:
+
+            printf("State: Idle");
+
+            if(!print_on & xperiment_start)
+            {
+
+            //TODO: Turn on LED
+            NimBLEDevice::getScan()->start(0,scanEndedCB);
+            state = STATE_LISTENING;
+            }
+
+            break;
+
+        case STATE_LISTENING:
+
+
+            if(doConnect)
+            {
+                printf("State: Listening\n");
+                connectToServer();
+                insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,time_last_read,SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
+                insert_at_carriage_return_and_save(SWC_VALUE_ARRAY_PATH,SWC_read,SIZE_OF_SWC_AFTER_FORMATTING,SWC_VALUE_ARRAY_SIZE,SWC_counter*SIZE_OF_SWC_AFTER_FORMATTING,&SWC_counter);
+                doConnect = false;
+                state = STATE_VALUE_RECEIVED;
+            }
+
+            break;
+
+        case STATE_VALUE_RECEIVED:
+
+            printf("State: Received\n");
+            char * print_TIMESTEP = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
+            fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
+            printf("timestep array: %s\n",print_TIMESTEP);
+            free(print_TIMESTEP);
+
+            char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
+            fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
+            printf("SWC array: %s\n",print_SWC);
+            free(print_SWC);
+            state = STATE_IDLE;
+
+            break;
+    }
 
 
 }

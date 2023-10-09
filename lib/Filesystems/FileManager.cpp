@@ -41,18 +41,43 @@ bool SPIFFSFileManager::save_file(const char *filePath, const unsigned char *dat
     size_t write_result = file.print( (const char *) dataToWrite);
 
     if(write_result){
-        log_i("− file written");
+        log_e("− file written");
         file.close();
         return true;
     }
     else //Failed to write
     {
-        log_e("%i − Write failed", write_result);
-        //throw std::runtime_error("− Write failed");
+        file.close();
+        log_e("- Write failed");
         return false;
     }
 
 }
+
+bool SPIFFSFileManager::save_file_with_retries(const char *filePath, const unsigned char *dataToWrite, int attempts, int mS_delay_between) {
+    int success = 0;
+    int retries = 0;
+
+    SPIFFSFileManager& fileMan = SPIFFSFileManager::get_instance();
+
+    while (retries < attempts) {
+        // Try to save the file
+        success = fileMan.save_file(filePath, dataToWrite);
+
+        // Check if save was successful
+        if (success) {
+            log_i("Succesfully inserted value into value array.\n");
+            return true;
+        } else {
+            log_i("Failed to insert value array into path %s for the %i 'th time. Retrying again in %i milliseconds",filePath,retries,mS_delay_between);
+            vTaskDelay(mS_delay_between / portTICK_PERIOD_MS);
+            retries++;
+        }
+    }
+
+    return false;
+}
+
 
 bool SPIFFSFileManager::exists(const char *filePath) {
     return fileSystem.exists((const char *) filePath);
