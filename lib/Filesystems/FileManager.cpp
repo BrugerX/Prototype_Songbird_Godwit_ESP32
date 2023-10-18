@@ -147,7 +147,6 @@ bool SPIFFSFileManager::load_file(const char * filePath, unsigned char * resultA
     File f1 = fileSystem.open(filePath,FILE_READ);
     if(!f1 || f1.isDirectory()){
         throw std::logic_error("− failed to open file for reading. You possibly tried to load a directory");
-        return false;
     }
 
     unsigned char res;
