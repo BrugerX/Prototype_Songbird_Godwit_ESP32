@@ -13,12 +13,12 @@
 
 unsigned char * format_SWC(unsigned char* input);
 
-unsigned char* long_to_char_array(long value);
+unsigned char* long_to_char_array(unsigned long value);
 
 
 void print_unsigned_char_array_as_long(const char* path,int data_size);
 
-bool insert_at_carriage_return_and_save(const char* path, long insert_long, int insert_string_size, int value_array_size , int index, int * incrementer);
+bool insert_at_carriage_return_and_save(const char* path, unsigned long insert_long, int insert_string_size, int value_array_size , int index, int * incrementer);
 
 
 bool insert_at_carriage_return_and_save(const char* path, unsigned char * insert_long, int insert_string_size, int value_array_size , int index, int * incrementer);

@@ -5,7 +5,7 @@
 #include "DataLogging.h"
 
 
-unsigned char* long_to_char_array(long value) {
+unsigned char* long_to_char_array(unsigned long value) {
     unsigned char* charArray = (unsigned char*)malloc(4 * sizeof(unsigned char));
     // Extract each byte and store it in the char array
     charArray[0] = (unsigned char) (value >> 24) & 0xFF;
@@ -140,7 +140,7 @@ bool insert_at_carriage_return_and_save(const char* path, unsigned char * input_
     return true;
 }
 
-bool insert_at_carriage_return_and_save(const char* path, long insert_long, int insert_string_size, int value_array_size , int index, int * incrementer) {
+bool insert_at_carriage_return_and_save(const char* path, unsigned long insert_long, int insert_string_size, int value_array_size , int index, int * incrementer) {
     SPIFFSFileManager& fileMan = SPIFFSFileManager::get_instance();
 
     //First convert the long to a char
@@ -166,11 +166,8 @@ bool insert_at_carriage_return_and_save(const char* path, long insert_long, int 
 
     if(!success)
     {
-        free(value_array);
         log_e("Failed to write array with path %s",path);
         throw std::runtime_error("Failed to write array");
-
-
     }
 
     (*incrementer)++;
