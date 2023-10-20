@@ -285,6 +285,20 @@ void setup (){
 
 void loop (){
 
+    while(print_on)
+    {
+        printf("State: Received\n");
+        char * print_TIMESTEP = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
+        fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
+        printf("timestep array: %s\n",print_TIMESTEP);
+        free(print_TIMESTEP);
+
+        char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
+        fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
+        printf("SWC array: %s\n",print_SWC);
+        free(print_SWC);
+    }
+
     switch(state)
     {
         case STATE_IDLE:
@@ -318,16 +332,8 @@ void loop (){
 
         case STATE_VALUE_RECEIVED:
 
-            printf("State: Received\n");
-            char * print_TIMESTEP = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
-            fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
-            printf("timestep array: %s\n",print_TIMESTEP);
-            free(print_TIMESTEP);
+            //TODO: Check if the arrays are full
 
-            char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
-            fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
-            printf("SWC array: %s\n",print_SWC);
-            free(print_SWC);
             state = STATE_IDLE;
 
             break;
