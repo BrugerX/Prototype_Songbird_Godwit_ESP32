@@ -7,8 +7,8 @@
 #include <time.h>
 #include "BLEMacros.h"
 
-#define S_B4_SLEEP 10
-#define S_2_SLEEP 10
+#define S_AWAKE 5
+#define S_2_SLEEP 5
 
 #define mS_TO_S_FACTOR 1000
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
@@ -406,7 +406,7 @@ void loop() {
     }
 
 
-    if(millis() - time_awoken > S_B4_SLEEP*mS_TO_S_FACTOR)
+    if(millis() - time_awoken > S_AWAKE * mS_TO_S_FACTOR)
     {
         esp_deep_sleep(uS_TO_S_FACTOR * S_2_SLEEP);
     }
