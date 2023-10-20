@@ -287,6 +287,30 @@ void setup (){
 
 void loop (){
 
+    while(print_on)
+    {
+        printf("State: Received\n");
+        unsigned char * print_TIMESTEP = (unsigned char* )malloc(sizeof(char) * TIMESTEP_VALUE_ARRAY_SIZE);
+        fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
+        for(int i = 0; i<120/4;i += 4)
+        {
+            unsigned long long_rep = (print_TIMESTEP[i]) | (print_TIMESTEP[i+1]<< 8) | (print_TIMESTEP[i+2] << 16) | (print_TIMESTEP[i+3] << 24);
+            printf("%lu        ",long_rep);
+        }
+        printf("\n");
+
+        free(print_TIMESTEP);
+
+        char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
+        fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
+        for(int i = 0; i<SWC_VALUE_ARRAY_SIZE;i++)
+        {
+            printf("%c",print_SWC[i]);
+        }
+
+        free(print_SWC);
+    }
+
     switch(state)
     {
         case STATE_IDLE:
@@ -321,26 +345,8 @@ void loop (){
 
         case STATE_VALUE_RECEIVED:
 
-            printf("State: Received\n");
-            unsigned char * print_TIMESTEP = (unsigned char* )malloc(sizeof(char) * TIMESTEP_VALUE_ARRAY_SIZE);
-            fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
-            for(int i = 0; i<120/4;i += 4)
-            {
-                unsigned long long_rep = (print_TIMESTEP[i]) | (print_TIMESTEP[i+1]<< 8) | (print_TIMESTEP[i+2] << 16) | (print_TIMESTEP[i+3] << 24);
-                printf("%lu        ",long_rep);
-            }
-            printf("\n");
 
-            free(print_TIMESTEP);
-
-            char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
-            fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
-            for(int i = 0; i<SWC_VALUE_ARRAY_SIZE;i++)
-            {
-                printf("%c",print_SWC[i]);
-            }
-
-            free(print_SWC);
+            //TODO: Check if the array is full
             state = STATE_LISTENING;
 
             break;
