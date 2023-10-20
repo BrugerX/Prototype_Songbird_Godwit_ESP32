@@ -19,7 +19,7 @@ static int SWC_counter = 0;
 static int timestep_count = 0;
 
 static unsigned char * SWC_read = nullptr;
-static long time_last_read = 0L;
+static unsigned long time_last_read = 0L;
 long time_start = millis();
 
 static int state = 0;
@@ -215,9 +215,11 @@ bool connectToServer() {
         SWC_read = format_SWC( (unsigned char*) SWC_read_string.c_str());
         //SWC_read = const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>("1.23"));
 
-        //time_last_read = millis(); <- Doesn't work!
-        time_last_read = 0L; // <- Works!
-        printf("Will try to save the SWC: %c%c%c%c and the time last read %lu \n",SWC_read[0],SWC_read[1],SWC_read[2],SWC_read[3],SWC_read[4],time_last_read);
+        time_last_read = millis();
+        //time_last_read = 69L;
+        unsigned long timestamp = time_last_read-time_start;
+        //timestamp = time_last_read;
+        printf("Will try to save the SWC: %c%c%c%c%c and the timestamp %lu \n",SWC_read[0],SWC_read[1],SWC_read[2],SWC_read[3],SWC_read[4],timestamp);
 
     }
 
@@ -308,7 +310,8 @@ void loop (){
             {
                 printf("State: Listening\n");
                 connectToServer();
-                insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,(time_last_read-time_start),SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
+                printf("Timestamp: %lu\n",time_last_read-time_start);
+                insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,(time_last_read),SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
                 insert_at_carriage_return_and_save(SWC_VALUE_ARRAY_PATH,SWC_read,SIZE_OF_SWC_AFTER_FORMATTING,SWC_VALUE_ARRAY_SIZE,SWC_counter*SIZE_OF_SWC_AFTER_FORMATTING,&SWC_counter);
                 doConnect = false;
                 state = STATE_VALUE_RECEIVED;
@@ -319,12 +322,12 @@ void loop (){
         case STATE_VALUE_RECEIVED:
 
             printf("State: Received\n");
-            char * print_TIMESTEP = (char* )malloc(sizeof(char) * TIMESTEP_VALUE_ARRAY_SIZE);
-            printf("%i",fileMane.exists(TIMESTEP_VALUE_ARRAY_PATH));
+            unsigned char * print_TIMESTEP = (unsigned char* )malloc(sizeof(char) * TIMESTEP_VALUE_ARRAY_SIZE);
             fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
-            for(int i = 0; i<TIMESTEP_VALUE_ARRAY_SIZE;i++)
+            for(int i = 0; i<120/4;i += 4)
             {
-                printf("%c",print_TIMESTEP[i]);
+                unsigned long long_rep = (print_TIMESTEP[i+3]) | (print_TIMESTEP[i+2]<< 8) | (print_TIMESTEP[i+1] << 16) | (print_TIMESTEP[i] << 24);
+                printf("%lu        ",long_rep);
             }
             printf("\n");
 
