@@ -53,7 +53,9 @@ public:
 
     bool delete_file(const char * filePath);
 
-    bool save_file_with_retries(const char *filePath, const unsigned char *dataToWrite, int attempts, int mS_delay_between);
+    bool save_file(const char* filePath, const unsigned char* dataToWrite, int dataSize);
+
+    bool save_file_with_retries(const char *filePath, const unsigned char *dataToWrite,int size_of_file, int attempts, int mS_delay_between);
 
     /**
      * Warning: Do not use this with strings. It will append random characters at the end of the string array.

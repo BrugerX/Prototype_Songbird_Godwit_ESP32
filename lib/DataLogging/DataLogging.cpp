@@ -5,13 +5,13 @@
 #include "DataLogging.h"
 
 
-unsigned char* long_to_char_array(long value) {
+unsigned char* long_to_char_array(unsigned long value) {
     unsigned char* charArray = (unsigned char*)malloc(4 * sizeof(unsigned char));
     // Extract each byte and store it in the char array
-    charArray[0] = (unsigned char) (value >> 24) & 0xFF;
-    charArray[1] = (unsigned char) (value >> 16) & 0xFF;
-    charArray[2] = (unsigned char) (value >> 8)  & 0xFF;
-    charArray[3] = (unsigned char)  value        & 0xFF;
+    charArray[3] = (unsigned char) (value >> 24) & 0xFF;
+    charArray[2] = (unsigned char) (value >> 16) & 0xFF;
+    charArray[1] = (unsigned char) (value >> 8)  & 0xFF;
+    charArray[0] = (unsigned char)  value        & 0xFF;
     return charArray;
 }
 
@@ -64,7 +64,7 @@ bool overwrite_value_array(int nr_chars, const char * path)
 
     value_array[nr_chars-1] = 0;
 
-    result = fileManager.save_file_with_retries(path, value_array, MAX_DATALOGGING_RETRIES, mS_TIME_BETWEEN_DATALOGS);
+    result = fileManager.save_file_with_retries(path, value_array,nr_chars,MAX_DATALOGGING_RETRIES, mS_TIME_BETWEEN_DATALOGS);
     free(value_array);
 
     return result;
@@ -123,7 +123,7 @@ bool insert_at_carriage_return_and_save(const char* path, unsigned char * input_
 
     int success =0;
 
-    success = fileMan.save_file_with_retries(path, value_array, MAX_DATALOGGING_RETRIES, mS_TIME_BETWEEN_DATALOGS);
+    success = fileMan.save_file_with_retries(path, value_array, value_array_size ,MAX_DATALOGGING_RETRIES, mS_TIME_BETWEEN_DATALOGS);
 
 
     free(value_array);
@@ -140,7 +140,7 @@ bool insert_at_carriage_return_and_save(const char* path, unsigned char * input_
     return true;
 }
 
-bool insert_at_carriage_return_and_save(const char* path, long insert_long, int insert_string_size, int value_array_size , int index, int * incrementer) {
+bool insert_at_carriage_return_and_save(const char* path, unsigned long insert_long, int insert_string_size, int value_array_size , int index, int * incrementer) {
     SPIFFSFileManager& fileMan = SPIFFSFileManager::get_instance();
 
     //First convert the long to a char
@@ -159,17 +159,15 @@ bool insert_at_carriage_return_and_save(const char* path, long insert_long, int 
 
     int success = 0;
 
-    success = fileMan.save_file_with_retries(path, value_array, MAX_DATALOGGING_RETRIES, mS_TIME_BETWEEN_DATALOGS);
+    success = fileMan.save_file_with_retries(path, value_array, value_array_size,MAX_DATALOGGING_RETRIES, mS_TIME_BETWEEN_DATALOGS);
 
     free(value_array);
+    free(input_string);
 
     if(!success)
     {
-        free(value_array);
         log_e("Failed to write array with path %s",path);
         throw std::runtime_error("Failed to write array");
-
-
     }
 
     (*incrementer)++;

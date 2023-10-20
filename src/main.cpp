@@ -2,9 +2,7 @@
 #include <NimBLEDevice.h>
 #include "Arduino.h"
 #include <BLEMacros.h>
-#include <BLEUtil.h>
 #include <FileManager.h>
-#include <UnsignedStringUtility.h>
 #include <DataLogging.h>
 #include <STATES_MACROS.h>
 
@@ -21,13 +19,14 @@ static int SWC_counter = 0;
 static int timestep_count = 0;
 
 static unsigned char * SWC_read = nullptr;
-static long time_last_read = 0L;
+static unsigned long time_last_read = 0L;
 unsigned long time_start = millis();
 
 static int state = 0;
 
 NimBLEClient * pClient_SWC;
 SPIFFSFileManager& fileMane = SPIFFSFileManager::get_instance();
+
 
 /**  None of these are required as they will be handled by the library with defaults. **
  **                       Remove as you see fit for your needs                        */
@@ -215,8 +214,12 @@ bool connectToServer() {
         String SWC_read_string = (String) VWC_chr->readValue().c_str();
         SWC_read = format_SWC( (unsigned char*) SWC_read_string.c_str());
         //SWC_read = const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>("1.23"));
-        time_last_read = 0x41424344L;
-        printf("Will try to save the SWC: %c%c%c%c and the time last read %ld \n",SWC_read[0],SWC_read[1],SWC_read[2],SWC_read[3],SWC_read[4],time_last_read);
+
+        time_last_read = millis();
+        //time_last_read = 69L;
+        unsigned long timestamp = time_last_read-time_start;
+        //timestamp = time_last_read;
+        printf("Will try to save the SWC: %c%c%c%c%c and the timestamp %lu \n",SWC_read[0],SWC_read[1],SWC_read[2],SWC_read[3],SWC_read[4],timestamp);
 
     }
 
@@ -228,7 +231,6 @@ void setup (){
     Serial.begin(115200);
     Serial.println("Starting NimBLE Client");
     fileMane.mount();
-
     delay(500);
     overwrite_value_array(SWC_VALUE_ARRAY_SIZE,SWC_VALUE_ARRAY_PATH);
     delay(1500);
@@ -285,20 +287,6 @@ void setup (){
 
 void loop (){
 
-    while(print_on)
-    {
-        printf("State: Received\n");
-        char * print_TIMESTEP = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
-        fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
-        printf("timestep array: %s\n",print_TIMESTEP);
-        free(print_TIMESTEP);
-
-        char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
-        fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
-        printf("SWC array: %s\n",print_SWC);
-        free(print_SWC);
-    }
-
     switch(state)
     {
         case STATE_IDLE:
@@ -318,11 +306,12 @@ void loop (){
         case STATE_LISTENING:
 
 
+            //If we can connect to our server
             if(doConnect)
             {
                 printf("State: Listening\n");
                 connectToServer();
-                insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,time_last_read,SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
+                insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,(time_last_read-time_start),SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
                 insert_at_carriage_return_and_save(SWC_VALUE_ARRAY_PATH,SWC_read,SIZE_OF_SWC_AFTER_FORMATTING,SWC_VALUE_ARRAY_SIZE,SWC_counter*SIZE_OF_SWC_AFTER_FORMATTING,&SWC_counter);
                 doConnect = false;
                 state = STATE_VALUE_RECEIVED;
@@ -332,9 +321,27 @@ void loop (){
 
         case STATE_VALUE_RECEIVED:
 
-            //TODO: Check if the arrays are full
+            printf("State: Received\n");
+            unsigned char * print_TIMESTEP = (unsigned char* )malloc(sizeof(char) * TIMESTEP_VALUE_ARRAY_SIZE);
+            fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
+            for(int i = 0; i<120/4;i += 4)
+            {
+                unsigned long long_rep = (print_TIMESTEP[i]) | (print_TIMESTEP[i+1]<< 8) | (print_TIMESTEP[i+2] << 16) | (print_TIMESTEP[i+3] << 24);
+                printf("%lu        ",long_rep);
+            }
+            printf("\n");
 
-            state = STATE_IDLE;
+            free(print_TIMESTEP);
+
+            char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
+            fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
+            for(int i = 0; i<SWC_VALUE_ARRAY_SIZE;i++)
+            {
+                printf("%c",print_SWC[i]);
+            }
+
+            free(print_SWC);
+            state = STATE_LISTENING;
 
             break;
     }

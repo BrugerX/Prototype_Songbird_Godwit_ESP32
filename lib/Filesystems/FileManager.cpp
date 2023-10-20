@@ -19,7 +19,7 @@ public:
 
 SPIFFSFileManager::SPIFFSFileManager()
 {
-    mount();
+
 }
 
 
@@ -54,7 +54,34 @@ bool SPIFFSFileManager::save_file(const char *filePath, const unsigned char *dat
 
 }
 
-bool SPIFFSFileManager::save_file_with_retries(const char *filePath, const unsigned char *dataToWrite, int attempts, int mS_delay_between) {
+bool SPIFFSFileManager::save_file(const char* filePath, const unsigned char* dataToWrite, int dataSize) {
+    log_e("Writing file: %s\r\n", filePath);
+
+    File file = fileSystem.open((const char *) filePath, FILE_WRITE);
+
+    // Failed to open
+    if (!file) {
+        log_e("− failed to open file for writing");
+        throw std::logic_error("− failed to open file for writing");
+    }
+
+    // Written successfully
+    size_t write_result = file.write(dataToWrite, dataSize);
+
+    if (write_result == dataSize) {
+        log_e("− file written");
+        file.close();
+        return true;
+    }
+        // Failed to write
+    else {
+        file.close();
+        log_e("- Write failed");
+        return false;
+    }
+}
+
+bool SPIFFSFileManager::save_file_with_retries(const char *filePath, const unsigned char *dataToWrite,int size_of_file, int attempts, int mS_delay_between) {
     int success = 0;
     int retries = 0;
 
@@ -62,7 +89,7 @@ bool SPIFFSFileManager::save_file_with_retries(const char *filePath, const unsig
 
     while (retries < attempts) {
         // Try to save the file
-        success = fileMan.save_file(filePath, dataToWrite);
+        success = fileMan.save_file(filePath, dataToWrite,size_of_file);
 
         // Check if save was successful
         if (success) {
@@ -120,7 +147,6 @@ bool SPIFFSFileManager::load_file(const char * filePath, unsigned char * resultA
     File f1 = fileSystem.open(filePath,FILE_READ);
     if(!f1 || f1.isDirectory()){
         throw std::logic_error("− failed to open file for reading. You possibly tried to load a directory");
-        return false;
     }
 
     unsigned char res;
