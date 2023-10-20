@@ -326,7 +326,7 @@ void loop (){
             fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
             for(int i = 0; i<120/4;i += 4)
             {
-                unsigned long long_rep = (print_TIMESTEP[i+3]) | (print_TIMESTEP[i+2]<< 8) | (print_TIMESTEP[i+1] << 16) | (print_TIMESTEP[i] << 24);
+                unsigned long long_rep = (print_TIMESTEP[i]) | (print_TIMESTEP[i+1]<< 8) | (print_TIMESTEP[i+2] << 16) | (print_TIMESTEP[i+3] << 24);
                 printf("%lu        ",long_rep);
             }
             printf("\n");

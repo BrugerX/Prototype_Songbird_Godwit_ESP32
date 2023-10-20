@@ -8,10 +8,10 @@
 unsigned char* long_to_char_array(unsigned long value) {
     unsigned char* charArray = (unsigned char*)malloc(4 * sizeof(unsigned char));
     // Extract each byte and store it in the char array
-    charArray[0] = (unsigned char) (value >> 24) & 0xFF;
-    charArray[1] = (unsigned char) (value >> 16) & 0xFF;
-    charArray[2] = (unsigned char) (value >> 8)  & 0xFF;
-    charArray[3] = (unsigned char)  value        & 0xFF;
+    charArray[3] = (unsigned char) (value >> 24) & 0xFF;
+    charArray[2] = (unsigned char) (value >> 16) & 0xFF;
+    charArray[1] = (unsigned char) (value >> 8)  & 0xFF;
+    charArray[0] = (unsigned char)  value        & 0xFF;
     return charArray;
 }
 
