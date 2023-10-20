@@ -306,11 +306,11 @@ void loop (){
         case STATE_LISTENING:
 
 
+            //If we can connect to our server
             if(doConnect)
             {
                 printf("State: Listening\n");
                 connectToServer();
-                printf("Timestamp: %lu\n",time_last_read-time_start);
                 insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,(time_last_read-time_start),SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
                 insert_at_carriage_return_and_save(SWC_VALUE_ARRAY_PATH,SWC_read,SIZE_OF_SWC_AFTER_FORMATTING,SWC_VALUE_ARRAY_SIZE,SWC_counter*SIZE_OF_SWC_AFTER_FORMATTING,&SWC_counter);
                 doConnect = false;
