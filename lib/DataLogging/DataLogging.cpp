@@ -54,6 +54,7 @@ unsigned char * format_SWC(unsigned char* input) {
 bool overwrite_value_array(int nr_chars, const char * path)
 {
     bool result = false;
+    log_e("Will try to overwrite: %s",path);
     SPIFFSFileManager& fileManager = SPIFFSFileManager::get_instance();
     unsigned char * value_array = (unsigned char *) malloc(sizeof(char)*nr_chars);
 

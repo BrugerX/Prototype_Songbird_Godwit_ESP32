@@ -6,14 +6,25 @@
 #include <DataLogging.h>
 #include <STATES_MACROS.h>
 
+
+static volatile bool print_on = false;
+static volatile bool xperiment_start = true;
+bool were_scanning_print = false;
+
+
+void IRAM_ATTR printon_interrupt()
+{
+    print_on = !print_on;
+}
+
+
 void scanEndedCB(NimBLEScanResults results);
 
 static NimBLEAdvertisedDevice* advDevice;
 
 static bool doConnect = false;
 static uint32_t scanTime = 0; /** 0 = scan forever */
-static bool print_on = false;
-static bool xperiment_start = true;
+
 
 static int SWC_counter = 0;
 static int timestep_count = 0;
@@ -22,7 +33,7 @@ static unsigned char * SWC_read = nullptr;
 static unsigned long time_last_read = 0L;
 unsigned long time_start = millis();
 
-static int state = 0;
+static int state = STATE_IDLE;
 
 NimBLEClient * pClient_SWC;
 SPIFFSFileManager& fileMane = SPIFFSFileManager::get_instance();
@@ -236,6 +247,12 @@ void setup (){
     delay(1500);
     overwrite_value_array(TIMESTEP_VALUE_ARRAY_SIZE,TIMESTEP_VALUE_ARRAY_PATH);
 
+    //Interrupts and pins
+    pinMode(PRINTING_ON_TRIGGER_PIN,INPUT);
+
+    pinMode(16,OUTPUT);
+    attachInterrupt(digitalPinToInterrupt(PRINTING_ON_TRIGGER_PIN),printon_interrupt,HIGH);
+
     /** Initialize NimBLE, no device name spcified as we are not advertising */
     NimBLEDevice::init(BLE_CLIENT_NAME);
 
@@ -279,25 +296,60 @@ void setup (){
      *  but will use more energy from both devices
      */
     pScan->setActiveScan(true);
-    /** Start scanning for advertisers for the scan time specified (in seconds) 0 = forever
-     *  Optional callback for when scanning stops.
-     */
 }
 
 
 void loop (){
 
+
+    while(print_on)
+    {
+        if(NimBLEDevice::getScan()->isScanning())
+        {
+            were_scanning_print = true;
+             NimBLEDevice::getScan()->stop();}
+
+        unsigned char * print_TIMESTEP = (unsigned char* )malloc(sizeof(char) * TIMESTEP_VALUE_ARRAY_SIZE);
+        fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
+        for(int i = 0; i<120/4;i += 4)
+        {
+            unsigned long long_rep = (print_TIMESTEP[i]) | (print_TIMESTEP[i+1]<< 8) | (print_TIMESTEP[i+2] << 16) | (print_TIMESTEP[i+3] << 24);
+            printf("%lu        ",long_rep);
+        }
+
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+
+        printf("\n");
+
+        free(print_TIMESTEP);
+
+        char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
+        fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
+        for(int i = 0; i<100;i++)
+        {
+            printf("%c",print_SWC[i]);
+        }
+
+        free(print_SWC);
+        printf("\n");
+        vTaskDelay(TIME_DELAY_AFTER_PRINTING_mS/portTICK_PERIOD_MS);
+        if(!print_on && were_scanning_print)
+        {
+            NimBLEDevice::getScan()->start(scanTime,scanEndedCB);
+        }
+    }
+
+
     switch(state)
     {
         case STATE_IDLE:
 
-            printf("State: Idle");
+            log_e("State: Idle");
 
             if(!print_on & xperiment_start)
             {
-
             //TODO: Turn on LED
-            NimBLEDevice::getScan()->start(0,scanEndedCB);
+            NimBLEDevice::getScan()->start(scanTime,scanEndedCB);
             state = STATE_LISTENING;
             }
 
@@ -309,7 +361,7 @@ void loop (){
             //If we can connect to our server
             if(doConnect)
             {
-                printf("State: Listening\n");
+                log_e("State: Listening\n");
                 connectToServer();
                 insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,(time_last_read-time_start),SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
                 insert_at_carriage_return_and_save(SWC_VALUE_ARRAY_PATH,SWC_read,SIZE_OF_SWC_AFTER_FORMATTING,SWC_VALUE_ARRAY_SIZE,SWC_counter*SIZE_OF_SWC_AFTER_FORMATTING,&SWC_counter);
@@ -322,25 +374,7 @@ void loop (){
         case STATE_VALUE_RECEIVED:
 
             printf("State: Received\n");
-            unsigned char * print_TIMESTEP = (unsigned char* )malloc(sizeof(char) * TIMESTEP_VALUE_ARRAY_SIZE);
-            fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
-            for(int i = 0; i<120/4;i += 4)
-            {
-                unsigned long long_rep = (print_TIMESTEP[i]) | (print_TIMESTEP[i+1]<< 8) | (print_TIMESTEP[i+2] << 16) | (print_TIMESTEP[i+3] << 24);
-                printf("%lu        ",long_rep);
-            }
-            printf("\n");
 
-            free(print_TIMESTEP);
-
-            char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
-            fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
-            for(int i = 0; i<SWC_VALUE_ARRAY_SIZE;i++)
-            {
-                printf("%c",print_SWC[i]);
-            }
-
-            free(print_SWC);
             state = STATE_LISTENING;
 
             break;

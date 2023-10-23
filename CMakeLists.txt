@@ -30,4 +30,4 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_executable(Z_DUMMY_TARGET ${SRC_LIST} src/STATES_MACROS.h)
+add_executable(Z_DUMMY_TARGET ${SRC_LIST} src/STATES_MACROS.h lib/DataLogging/InterruptFunctions.cpp lib/DataLogging/InterruptFunctions.h)
