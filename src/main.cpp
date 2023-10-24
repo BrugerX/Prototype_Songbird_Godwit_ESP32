@@ -8,14 +8,11 @@
 
 
 static volatile bool print_on = false;
-static volatile bool xperiment_start = true;
+static volatile bool xperiment_on = false;
+static volatile bool restart_on = false;
 bool were_scanning_print = false;
 
 
-void IRAM_ATTR printon_interrupt()
-{
-    print_on = !print_on;
-}
 
 
 void scanEndedCB(NimBLEScanResults results);
@@ -34,6 +31,24 @@ static unsigned long time_last_read = 0L;
 unsigned long time_start = millis();
 
 static int state = STATE_IDLE;
+
+
+
+void IRAM_ATTR printon_interrupt()
+{
+    print_on = !print_on;
+}
+
+void IRAM_ATTR xperimenton_interrupt()
+{
+    xperiment_on = !xperiment_on;
+    state = STATE_IDLE;
+}
+
+void IRAM_ATTR restart_interrupt()
+{
+    restart_on = true;
+}
 
 NimBLEClient * pClient_SWC;
 SPIFFSFileManager& fileMane = SPIFFSFileManager::get_instance();
@@ -242,16 +257,17 @@ void setup (){
     Serial.begin(115200);
     Serial.println("Starting NimBLE Client");
     fileMane.mount();
-    delay(500);
-    overwrite_value_array(SWC_VALUE_ARRAY_SIZE,SWC_VALUE_ARRAY_PATH);
-    delay(1500);
-    overwrite_value_array(TIMESTEP_VALUE_ARRAY_SIZE,TIMESTEP_VALUE_ARRAY_PATH);
 
     //Interrupts and pins
     pinMode(PRINTING_ON_TRIGGER_PIN,INPUT);
-
-    pinMode(16,OUTPUT);
     attachInterrupt(digitalPinToInterrupt(PRINTING_ON_TRIGGER_PIN),printon_interrupt,HIGH);
+
+    pinMode(XPERIMENT_ON_TRIGGER_PIN,INPUT);
+    attachInterrupt(digitalPinToInterrupt(XPERIMENT_ON_TRIGGER_PIN),xperimenton_interrupt,HIGH);
+
+    pinMode(RESTART_TRIGGER_PIN,INPUT);
+    attachInterrupt(digitalPinToInterrupt(RESTART_TRIGGER_PIN),restart_interrupt,HIGH);
+
 
     /** Initialize NimBLE, no device name spcified as we are not advertising */
     NimBLEDevice::init(BLE_CLIENT_NAME);
@@ -301,6 +317,23 @@ void setup (){
 
 void loop (){
 
+    if(restart_on)
+    {
+        log_e("Restarting");
+        bool res1,res2,finish = false;
+        do{
+        delay(500);
+        res1 = overwrite_value_array(SWC_VALUE_ARRAY_SIZE,SWC_VALUE_ARRAY_PATH);
+        delay(1500);
+        res2 = overwrite_value_array(TIMESTEP_VALUE_ARRAY_SIZE,TIMESTEP_VALUE_ARRAY_PATH);
+        finish = res1 && res2;
+        }
+        while(!finish);
+
+
+        esp_system_abort("Restarting experiment");
+
+    }
 
     while(print_on)
     {
@@ -336,49 +369,72 @@ void loop (){
         if(!print_on && were_scanning_print)
         {
             NimBLEDevice::getScan()->start(scanTime,scanEndedCB);
+            log_e("Done printing\n");
         }
     }
 
 
-    switch(state)
+
+    if(xperiment_on)
     {
-        case STATE_IDLE:
+        switch(state)
+        {
+            case STATE_IDLE:
 
-            log_e("State: Idle");
+                log_e("%i",xperiment_on);
+                log_e("State: Idle");
 
-            if(!print_on & xperiment_start)
-            {
-            //TODO: Turn on LED
-            NimBLEDevice::getScan()->start(scanTime,scanEndedCB);
-            state = STATE_LISTENING;
-            }
+                if(!print_on)
+                {
+                    //TODO: Turn on LED
+                    NimBLEDevice::getScan()->start(scanTime,scanEndedCB);
+                    state = STATE_LISTENING;
+                }
 
-            break;
+                break;
 
-        case STATE_LISTENING:
+            case STATE_LISTENING:
 
 
-            //If we can connect to our server
-            if(doConnect)
-            {
-                log_e("State: Listening\n");
-                connectToServer();
-                insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,(time_last_read-time_start),SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
-                insert_at_carriage_return_and_save(SWC_VALUE_ARRAY_PATH,SWC_read,SIZE_OF_SWC_AFTER_FORMATTING,SWC_VALUE_ARRAY_SIZE,SWC_counter*SIZE_OF_SWC_AFTER_FORMATTING,&SWC_counter);
-                doConnect = false;
-                state = STATE_VALUE_RECEIVED;
-            }
+                //If we can connect to our server
+                if(doConnect)
+                {
+                    log_e("State: Listening\n");
+                    connectToServer();
+                    if(xperiment_on){
+                    insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,(time_last_read-time_start),SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
+                    insert_at_carriage_return_and_save(SWC_VALUE_ARRAY_PATH,SWC_read,SIZE_OF_SWC_AFTER_FORMATTING,SWC_VALUE_ARRAY_SIZE,SWC_counter*SIZE_OF_SWC_AFTER_FORMATTING,&SWC_counter);
+                    doConnect = false;
+                    state = STATE_VALUE_RECEIVED;}
+                }
 
-            break;
+                break;
 
-        case STATE_VALUE_RECEIVED:
+            case STATE_VALUE_RECEIVED:
 
-            printf("State: Received\n");
+                printf("State: Received\n");
 
-            state = STATE_LISTENING;
+                //TODO: Check if array is full
 
-            break;
+                if(xperiment_on)
+                {
+                    state = STATE_LISTENING;
+                }
+                else
+                {
+                    state = STATE_IDLE;
+                }
+
+                break;
+        }
+
     }
+    else{
+        log_e("Experiment off");
+        doConnect = false;
+        if(NimBLEDevice::getScan()->isScanning()){NimBLEDevice::getScan()->stop();}
+    }
+
 
 
 }
