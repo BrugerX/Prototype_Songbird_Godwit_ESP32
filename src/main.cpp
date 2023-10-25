@@ -134,6 +134,7 @@ class AdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks {
 
             /** Ready to connect now */
             doConnect = true;
+            Serial.println(doConnect);
         }
     };
 };
@@ -206,7 +207,7 @@ bool connectToServer() {
          */
         pClient->setConnectionParams(12,12,0,51);
         /** Set how long we are willing to wait for the connection to complete (seconds), default is 30. */
-        pClient->setConnectTimeout(5);
+        pClient->setConnectTimeout(6);
 
 
         if (!pClient->connect(advDevice)) {
@@ -268,6 +269,10 @@ void setup (){
     pinMode(RESTART_TRIGGER_PIN,INPUT);
     attachInterrupt(digitalPinToInterrupt(RESTART_TRIGGER_PIN),restart_interrupt,HIGH);
 
+    //LED BLINKERS
+    pinMode(BLE_FLASH_PIN,OUTPUT);
+    pinMode(XPERIMENT_ARRAY_FULL, OUTPUT);
+    pinMode(XPERIMENT_ON_PIN,OUTPUT);
 
     /** Initialize NimBLE, no device name spcified as we are not advertising */
     NimBLEDevice::init(BLE_CLIENT_NAME);
@@ -377,6 +382,7 @@ void loop (){
 
     if(xperiment_on)
     {
+        digitalWrite(XPERIMENT_ON_PIN,LOW);
         switch(state)
         {
             case STATE_IDLE:
@@ -396,11 +402,18 @@ void loop (){
             case STATE_LISTENING:
 
 
+                //log_e("State: Listening\n");
+                //if(!NimBLEDevice::getScan()->isScanning()){NimBLEDevice::getScan()->start(scanTime,scanEndedCB);}
+
                 //If we can connect to our server
                 if(doConnect)
                 {
-                    log_e("State: Listening\n");
                     connectToServer();
+                    /*
+                    digitalWrite(BLE_FLASH_PIN,HIGH);
+                    vTaskDelay(100/portTICK_PERIOD_MS);
+                    digitalWrite(BLE_FLASH_PIN,LOW);*/
+
                     if(xperiment_on){
                     insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,(time_last_read-time_start),SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
                     insert_at_carriage_return_and_save(SWC_VALUE_ARRAY_PATH,SWC_read,SIZE_OF_SWC_AFTER_FORMATTING,SWC_VALUE_ARRAY_SIZE,SWC_counter*SIZE_OF_SWC_AFTER_FORMATTING,&SWC_counter);
@@ -416,8 +429,10 @@ void loop (){
 
                 //TODO: Check if array is full
 
+
                 if(xperiment_on)
                 {
+                    log_e("State: Listening\n");
                     state = STATE_LISTENING;
                 }
                 else
@@ -430,9 +445,11 @@ void loop (){
 
     }
     else{
-        log_e("Experiment off");
+        //log_e("Experiment off");
+        digitalWrite(XPERIMENT_ON_PIN,HIGH);
         doConnect = false;
         if(NimBLEDevice::getScan()->isScanning()){NimBLEDevice::getScan()->stop();}
+        state = STATE_IDLE;
     }
 
 
