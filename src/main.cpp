@@ -350,26 +350,29 @@ void loop (){
 
         unsigned char * print_TIMESTEP = (unsigned char* )malloc(sizeof(char) * TIMESTEP_VALUE_ARRAY_SIZE);
         fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
-        for(int i = 0; i<120/4;i += 4)
+        for(int i = 0; i<(SIZE_OF_TIMESTAMP_AFTER_FORMATTING*200)/4;i += 4)
         {
             unsigned long long_rep = (print_TIMESTEP[i]) | (print_TIMESTEP[i+1]<< 8) | (print_TIMESTEP[i+2] << 16) | (print_TIMESTEP[i+3] << 24);
-            printf("%lu        ",long_rep);
+            printf("%lu",long_rep);
         }
 
         vTaskDelay(1000/portTICK_PERIOD_MS);
 
+        log_e("\nNumber of writes to timestep: %i\n",timestep_count);
         printf("\n");
 
         free(print_TIMESTEP);
 
         char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
         fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
-        for(int i = 0; i<100;i++)
+        for(int i = 0; i<200*SIZE_OF_SWC_AFTER_FORMATTING;i++)
         {
             printf("%c",print_SWC[i]);
         }
 
         free(print_SWC);
+
+        log_e("\nNumber of writes to timestep: %i\n",SWC_counter);
         printf("\n");
         vTaskDelay(TIME_DELAY_AFTER_PRINTING_mS/portTICK_PERIOD_MS);
         if(!print_on && were_scanning_print)
