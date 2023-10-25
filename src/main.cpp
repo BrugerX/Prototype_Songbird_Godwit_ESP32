@@ -247,6 +247,7 @@ bool connectToServer() {
         unsigned long timestamp = time_last_read-time_start;
         //timestamp = time_last_read;
         printf("Will try to save the SWC: %c%c%c%c%c and the timestamp %lu \n",SWC_read[0],SWC_read[1],SWC_read[2],SWC_read[3],SWC_read[4],timestamp);
+        doConnect = false;
 
     }
 
@@ -409,15 +410,14 @@ void loop (){
                 if(doConnect)
                 {
                     connectToServer();
-                    /*
+
                     digitalWrite(BLE_FLASH_PIN,HIGH);
                     vTaskDelay(100/portTICK_PERIOD_MS);
-                    digitalWrite(BLE_FLASH_PIN,LOW);*/
+                    digitalWrite(BLE_FLASH_PIN,LOW);
 
                     if(xperiment_on){
                     insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,(time_last_read-time_start),SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
                     insert_at_carriage_return_and_save(SWC_VALUE_ARRAY_PATH,SWC_read,SIZE_OF_SWC_AFTER_FORMATTING,SWC_VALUE_ARRAY_SIZE,SWC_counter*SIZE_OF_SWC_AFTER_FORMATTING,&SWC_counter);
-                    doConnect = false;
                     state = STATE_VALUE_RECEIVED;}
                 }
 
