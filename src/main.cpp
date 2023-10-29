@@ -354,13 +354,13 @@ void loop (){
         for(int i = 0; i<(SIZE_OF_TIMESTAMP_AFTER_FORMATTING*200)/4;i += 4)
         {
             unsigned long long_rep = (print_TIMESTEP[i]) | (print_TIMESTEP[i+1]<< 8) | (print_TIMESTEP[i+2] << 16) | (print_TIMESTEP[i+3] << 24);
-            printf("%lu",long_rep);
+            printf("%lu ",long_rep);
+            delay(10);
         }
 
         vTaskDelay(1000/portTICK_PERIOD_MS);
 
         log_e("\nNumber of writes to timestep: %i\n",timestep_count);
-        printf("\n");
 
         free(print_TIMESTEP);
 
@@ -368,15 +368,16 @@ void loop (){
         fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
         for(int i = 0; i<200*SIZE_OF_SWC_AFTER_FORMATTING;i++)
         {
-            printf("%c  ",print_SWC[i]);
+            printf("%c",print_SWC[i]);
+            delay(10);
         }
 
         free(print_SWC);
 
         vTaskDelay(1000/portTICK_PERIOD_MS);
 
-        log_e("\nNumber of writes to timestep: %i\n",SWC_counter);
-        printf("\n");
+        log_e("\nNumber of writes to SWC: %i\n",SWC_counter);
+
         vTaskDelay(TIME_DELAY_AFTER_PRINTING_mS/portTICK_PERIOD_MS);
         if(!print_on && were_scanning_print)
         {
