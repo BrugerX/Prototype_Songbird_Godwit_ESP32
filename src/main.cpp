@@ -5,6 +5,7 @@
 #include <FileManager.h>
 #include <DataLogging.h>
 #include <STATES_MACROS.h>
+#include <nvs_flash.h>
 
 
 static volatile bool print_on = false;
@@ -247,7 +248,6 @@ bool connectToServer() {
         unsigned long timestamp = time_last_read-time_start;
         //timestamp = time_last_read;
         printf("Will try to save the SWC: %c%c%c%c%c and the timestamp %lu \n",SWC_read[0],SWC_read[1],SWC_read[2],SWC_read[3],SWC_read[4],timestamp);
-        doConnect = false;
 
     }
 
@@ -259,6 +259,7 @@ void setup (){
     Serial.begin(115200);
     Serial.println("Starting NimBLE Client");
     fileMane.mount();
+    nvs_flash_init();
 
     //Interrupts and pins
     pinMode(PRINTING_ON_TRIGGER_PIN,INPUT);
@@ -325,7 +326,7 @@ void loop (){
 
     if(restart_on)
     {
-        log_e("Restarting");
+        log_e("Restarting ESP32");
         bool res1,res2,finish = false;
         do{
         delay(500);
@@ -367,10 +368,12 @@ void loop (){
         fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
         for(int i = 0; i<200*SIZE_OF_SWC_AFTER_FORMATTING;i++)
         {
-            printf("%c",print_SWC[i]);
+            printf("%c  ",print_SWC[i]);
         }
 
         free(print_SWC);
+
+        vTaskDelay(1000/portTICK_PERIOD_MS);
 
         log_e("\nNumber of writes to timestep: %i\n",SWC_counter);
         printf("\n");
@@ -396,7 +399,7 @@ void loop (){
 
                 if(!print_on)
                 {
-                    //TODO: Turn on LED
+
                     NimBLEDevice::getScan()->start(scanTime,scanEndedCB);
                     state = STATE_LISTENING;
                 }
@@ -406,13 +409,11 @@ void loop (){
             case STATE_LISTENING:
 
 
-                //log_e("State: Listening\n");
-                //if(!NimBLEDevice::getScan()->isScanning()){NimBLEDevice::getScan()->start(scanTime,scanEndedCB);}
-
                 //If we can connect to our server
                 if(doConnect)
                 {
                     connectToServer();
+                    doConnect = false;
 
                     digitalWrite(BLE_FLASH_PIN,HIGH);
                     vTaskDelay(100/portTICK_PERIOD_MS);
@@ -451,7 +452,13 @@ void loop (){
         //log_e("Experiment off");
         digitalWrite(XPERIMENT_ON_PIN,HIGH);
         doConnect = false;
-        if(NimBLEDevice::getScan()->isScanning()){NimBLEDevice::getScan()->stop();}
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        if(NimBLEDevice::getScan()->isScanning())
+        {
+            //We add delays, so that the GATT server has time to either startup- or shutdown before th button can pressed again
+            NimBLEDevice::getScan()->stop();
+            vTaskDelay(1000/portTICK_PERIOD_MS);
+        }
         state = STATE_IDLE;
     }
 
