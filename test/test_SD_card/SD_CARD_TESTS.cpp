@@ -34,12 +34,52 @@ void test_mounting(void)
     sdMan.mount();
 }
 
+
+
 void test_existing(void)
 {
     const char * filePath = "/testExistingFP";
     TEST_ASSERT_FALSE(fileMan.exists(filePath));
     fileMan.write_file(filePath,(unsigned char *)"abc",3);
     TEST_ASSERT_TRUE(fileMan.exists(filePath));
+}
+
+void test_writing_creates_files(void)
+{
+
+    auto * correct_value =(unsigned char*) "(12.12,123456789)";
+    const char * writeTestPath = "/testWritingCreatesFilesFP.txt";
+
+    TEST_ASSERT_FALSE(fileMan.exists(writeTestPath));
+
+    fileMan.write_file(writeTestPath,correct_value,strlen((const char*)correct_value));
+
+    TEST_ASSERT_TRUE(fileMan.exists(writeTestPath));
+
+}
+
+void test_append_creates_file(void)
+{
+    const char * filePath = "/testAppendingCreatesFP.txt";
+    unsigned char * dataToWrite = (unsigned char *)"abc";
+    TEST_ASSERT_FALSE(fileMan.exists(filePath));
+    fileMan.append_file(filePath,dataToWrite,strlen((const char*)dataToWrite));
+    TEST_ASSERT_TRUE(fileMan.exists(filePath));
+}
+
+
+void test_append_file(void)
+{
+
+    const char * filePath = "/testAppendingFP.txt";
+    unsigned char * dataToWrite = (unsigned char *)"abc";
+
+    TEST_ASSERT_FALSE(fileMan.exists(filePath));
+    fileMan.write_file(filePath,dataToWrite, strlen((const char*)dataToWrite));
+    TEST_ASSERT_TRUE(fileMan.exists(filePath));
+
+    fileMan.append_file(filePath,dataToWrite, strlen((const char*)dataToWrite));
+    fileMan.append_file(filePath,dataToWrite, strlen((const char*)dataToWrite));
 }
 
 void setup()
@@ -51,6 +91,9 @@ void setup()
     UNITY_BEGIN(); //Define stuff after this
     RUN_TEST(test_mounting);
     RUN_TEST(test_existing);
+    RUN_TEST(test_writing_creates_files);
+    RUN_TEST(test_append_creates_file);
+    RUN_TEST(test_append_file);
     UNITY_END(); // stop unit testing
 }
 
