@@ -24,7 +24,7 @@ long char_array_to_long(unsigned char* charArray) {
 }
 
 unsigned char * format_SWC(unsigned char* input) {
-    unsigned char* output = new unsigned char[5];
+    unsigned char* output = new unsigned char[SIZE_OF_SWC_AFTER_FORMATTING];
 
     // Ensure output is cleared/initialized
     for(int i = 0; i < 5; i++) {
@@ -37,12 +37,14 @@ unsigned char * format_SWC(unsigned char* input) {
         output[2] = input[1];
         output[3] = input[2];
         output[4] = input[3];
+        output[5] = '\0';
     } else { // Assumes the format is "XX.XX"
         output[0] = input[0];
         output[1] = input[1];
         output[2] = input[2];
         output[3] = input[3];
         output[4] = input[4];
+        output[5] = '\0';
     }
 
     return output;
@@ -182,7 +184,7 @@ unsigned char * create_SWC_tStamp_tuple(unsigned char * SWC_value, unsigned long
 
     // Calculate the maximum length of the final string
     // We have 3 for the parentheses and comma, plus 1 for the null-terminator.
-    int max_length = SIZE_OF_SWC_AFTER_FORMATTING + snprintf(NULL, 0, "%lu", tStamp) + 3 + 1;
+    int max_length = SIZE_OF_SWC_AFTER_FORMATTING + 1 + snprintf(NULL, 0, "%lu", tStamp) + 3 + 1;
 
     // Allocate memory for the final string
     char *result_str = (char *) malloc(max_length);

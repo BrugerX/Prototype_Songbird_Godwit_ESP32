@@ -8,10 +8,8 @@
 #include <nvs_flash.h>
 
 
-static volatile bool print_on = false;
 static volatile bool xperiment_on = false;
 static volatile bool restart_on = false;
-bool were_scanning_print = false;
 
 
 
@@ -23,22 +21,15 @@ static NimBLEAdvertisedDevice* advDevice;
 static bool doConnect = false;
 static uint32_t scanTime = 0; /** 0 = scan forever */
 
-
-static int SWC_counter = 0;
-static int timestep_count = 0;
-
 static unsigned char * SWC_read = nullptr;
-static unsigned long time_last_read = 0L;
+static unsigned long time_last_read = 0UL;
 unsigned long time_start = millis();
 
 static int state = STATE_IDLE;
 
 
 
-void IRAM_ATTR printon_interrupt()
-{
-    print_on = !print_on;
-}
+
 
 void IRAM_ATTR xperimenton_interrupt()
 {
@@ -46,14 +37,10 @@ void IRAM_ATTR xperimenton_interrupt()
     state = STATE_IDLE;
 }
 
-void IRAM_ATTR restart_interrupt()
-{
-    restart_on = true;
-}
 
 NimBLEClient * pClient_SWC;
 SPIFFSFileManager& fileMane = SPIFFSFileManager::get_instance();
-
+SDFileManager& fileMan = SDFileManager::get_instance();
 
 /**  None of these are required as they will be handled by the library with defaults. **
  **                       Remove as you see fit for your needs                        */
@@ -244,10 +231,7 @@ bool connectToServer() {
         //SWC_read = const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>("1.23"));
 
         time_last_read = millis();
-        //time_last_read = 69L;
-        unsigned long timestamp = time_last_read-time_start;
-        //timestamp = time_last_read;
-        printf("Will try to save the SWC: %c%c%c%c%c and the timestamp %lu \n",SWC_read[0],SWC_read[1],SWC_read[2],SWC_read[3],SWC_read[4],timestamp);
+        printf("Will try to save the SWC: %c%c%c%c%c and the timestamp %lu \n",SWC_read[0],SWC_read[1],SWC_read[2],SWC_read[3],SWC_read[4],time_last_read);
 
     }
 
@@ -258,22 +242,14 @@ bool connectToServer() {
 void setup (){
     Serial.begin(115200);
     Serial.println("Starting NimBLE Client");
-    fileMane.mount();
-    nvs_flash_init();
-
-    //Interrupts and pins
-    pinMode(PRINTING_ON_TRIGGER_PIN,INPUT);
-    attachInterrupt(digitalPinToInterrupt(PRINTING_ON_TRIGGER_PIN),printon_interrupt,HIGH);
+    fileMan.mount();
 
     pinMode(XPERIMENT_ON_TRIGGER_PIN,INPUT);
     attachInterrupt(digitalPinToInterrupt(XPERIMENT_ON_TRIGGER_PIN),xperimenton_interrupt,HIGH);
 
-    pinMode(RESTART_TRIGGER_PIN,INPUT);
-    attachInterrupt(digitalPinToInterrupt(RESTART_TRIGGER_PIN),restart_interrupt,HIGH);
-
     //LED BLINKERS
     pinMode(BLE_FLASH_PIN,OUTPUT);
-    pinMode(XPERIMENT_ARRAY_FULL, OUTPUT);
+    pinMode(RED_LED, OUTPUT);
     pinMode(XPERIMENT_ON_PIN,OUTPUT);
 
     /** Initialize NimBLE, no device name spcified as we are not advertising */
@@ -342,49 +318,6 @@ void loop (){
 
     }
 
-    while(print_on)
-    {
-        if(NimBLEDevice::getScan()->isScanning())
-        {
-            were_scanning_print = true;
-             NimBLEDevice::getScan()->stop();}
-
-        unsigned char * print_TIMESTEP = (unsigned char* )malloc(sizeof(char) * TIMESTEP_VALUE_ARRAY_SIZE);
-        fileMane.load_file(TIMESTEP_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *>(print_TIMESTEP),TIMESTEP_VALUE_ARRAY_SIZE-1);
-        for(int i = 0; i<(SIZE_OF_TIMESTAMP_AFTER_FORMATTING*200)/4;i += 4)
-        {
-            unsigned long long_rep = (print_TIMESTEP[i]) | (print_TIMESTEP[i+1]<< 8) | (print_TIMESTEP[i+2] << 16) | (print_TIMESTEP[i+3] << 24);
-            printf("%lu ",long_rep);
-            delay(10);
-        }
-
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-
-        log_e("\nNumber of writes to timestep: %i\n",timestep_count);
-
-        free(print_TIMESTEP);
-
-        char * print_SWC = (char* )malloc(sizeof(char) * SWC_VALUE_ARRAY_SIZE);
-        fileMane.load_file(SWC_VALUE_ARRAY_PATH,reinterpret_cast<unsigned char *> (print_SWC),SWC_VALUE_ARRAY_SIZE-1);
-        for(int i = 0; i<200*SIZE_OF_SWC_AFTER_FORMATTING;i++)
-        {
-            printf("%c",print_SWC[i]);
-            delay(10);
-        }
-
-        free(print_SWC);
-
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-
-        log_e("\nNumber of writes to SWC: %i\n",SWC_counter);
-
-        vTaskDelay(TIME_DELAY_AFTER_PRINTING_mS/portTICK_PERIOD_MS);
-        if(!print_on && were_scanning_print)
-        {
-            NimBLEDevice::getScan()->start(scanTime,scanEndedCB);
-            log_e("Done printing\n");
-        }
-    }
 
 
 
@@ -418,8 +351,9 @@ void loop (){
                     digitalWrite(BLE_FLASH_PIN,LOW);
 
                     if(xperiment_on){
-                    insert_at_carriage_return_and_save(TIMESTEP_VALUE_ARRAY_PATH,(time_last_read-time_start),SIZE_OF_TIMESTAMP_AFTER_FORMATTING,TIMESTEP_VALUE_ARRAY_SIZE,timestep_count*SIZE_OF_TIMESTAMP_AFTER_FORMATTING,&timestep_count);
-                    insert_at_carriage_return_and_save(SWC_VALUE_ARRAY_PATH,SWC_read,SIZE_OF_SWC_AFTER_FORMATTING,SWC_VALUE_ARRAY_SIZE,SWC_counter*SIZE_OF_SWC_AFTER_FORMATTING,&SWC_counter);
+                        unsigned char * SWC_tuple = create_SWC_tStamp_tuple(SWC_read,time_last_read);
+                        log_e("Will append: %s",SWC_tuple);
+                        fileMan.append_file(SWC_VALUE_ARRAY_PATH,SWC_tuple,strlen((const char *) SWC_tuple));
                     state = STATE_VALUE_RECEIVED;}
                 }
 
