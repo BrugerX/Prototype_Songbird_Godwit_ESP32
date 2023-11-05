@@ -169,3 +169,19 @@ bool SPIFFSFileManager::mount() {
 
     return true;
 }
+
+void SDFileManager::mount()
+{
+    if(!SD.begin()){
+        log_e("SD card: Mount Failed");
+        throw std::runtime_error("SD card: Mount Failed!");
+    }
+}
+
+SDFileManager::SDFileManager() {
+
+}
+
+SDFileManager::~SDFileManager() {
+
+}

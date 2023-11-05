@@ -398,12 +398,9 @@ void loop (){
                 log_e("%i",xperiment_on);
                 log_e("State: Idle");
 
-                if(!print_on)
-                {
 
-                    NimBLEDevice::getScan()->start(scanTime,scanEndedCB);
-                    state = STATE_LISTENING;
-                }
+                NimBLEDevice::getScan()->start(scanTime,scanEndedCB);
+                state = STATE_LISTENING;
 
                 break;
 

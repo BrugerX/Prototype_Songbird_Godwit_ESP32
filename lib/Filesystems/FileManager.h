@@ -124,6 +124,7 @@ public:
     SDFileManager& operator=(const SDFileManager&) = delete;  // Delete copy assignment operator
 
 
+
     /**
      * Saves a file to the flash using SPIFFs
      *
@@ -138,7 +139,7 @@ public:
     /**
     * Will mount the current SPIFFSFileManager object unto the SPIFFS, if no other SPIFFSFileManager is mounted.
     */
-    bool mount();
+    void mount();
 
 };
 
