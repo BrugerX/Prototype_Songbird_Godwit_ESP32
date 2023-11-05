@@ -42,19 +42,22 @@ void test_existing(void)
     TEST_ASSERT_FALSE(fileMan.exists(filePath));
     fileMan.write_file(filePath,(unsigned char *)"abc",3);
     TEST_ASSERT_TRUE(fileMan.exists(filePath));
+    fileMan.delete_file(filePath);
 }
 
 void test_writing_creates_files(void)
 {
 
     auto * correct_value =(unsigned char*) "(12.12,123456789)";
-    const char * writeTestPath = "/testWritingCreatesFilesFP.txt";
+    const char * filePath = "/testWritingCreatesFilesFP.txt";
 
-    TEST_ASSERT_FALSE(fileMan.exists(writeTestPath));
+    TEST_ASSERT_FALSE(fileMan.exists(filePath));
 
-    fileMan.write_file(writeTestPath,correct_value,strlen((const char*)correct_value));
+    fileMan.write_file(filePath,correct_value,strlen((const char*)correct_value));
 
-    TEST_ASSERT_TRUE(fileMan.exists(writeTestPath));
+    TEST_ASSERT_TRUE(fileMan.exists(filePath));
+
+    fileMan.delete_file(filePath);
 
 }
 
@@ -65,6 +68,9 @@ void test_append_creates_file(void)
     TEST_ASSERT_FALSE(fileMan.exists(filePath));
     fileMan.append_file(filePath,dataToWrite,strlen((const char*)dataToWrite));
     TEST_ASSERT_TRUE(fileMan.exists(filePath));
+
+
+    fileMan.delete_file(filePath);
 }
 
 
@@ -80,6 +86,9 @@ void test_append_file(void)
 
     fileMan.append_file(filePath,dataToWrite, strlen((const char*)dataToWrite));
     fileMan.append_file(filePath,dataToWrite, strlen((const char*)dataToWrite));
+
+
+    fileMan.delete_file(filePath);
 }
 
 void test_file_doesnt_exist_after_deletion(void)

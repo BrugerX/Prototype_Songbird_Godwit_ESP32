@@ -54,16 +54,17 @@ void create_and_save_SWC_tStamp_tuple(void)
     // The unsigned long value
     unsigned long ulong_value = 123456789UL; // Example value
     auto * correct_value =(unsigned char*) "(12.12,123456789)";
-    const char * writeTestPath = "/SWCtStampTupleWriteTestFP.txt";
+    const char * filePath = "/SWCtStampTupleWriteTestFP.txt";
 
     unsigned char * result_tuple = create_SWC_tStamp_tuple(float_str,ulong_value);
     log_e("%s",result_tuple);
-    TEST_ASSERT_FALSE(fileMan.exists(writeTestPath));
+    TEST_ASSERT_FALSE(fileMan.exists(filePath));
 
-    fileMan.write_file(writeTestPath,result_tuple,strlen((const char*)result_tuple));
+    fileMan.write_file(filePath,result_tuple,strlen((const char*)result_tuple));
 
-    TEST_ASSERT_TRUE(fileMan.exists(writeTestPath));
+    TEST_ASSERT_TRUE(fileMan.exists(filePath));
 
+    fileMan.delete_file(filePath);
     free(result_tuple);
 }
 
