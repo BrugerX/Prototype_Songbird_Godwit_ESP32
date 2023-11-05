@@ -136,6 +136,7 @@ public:
 
     bool append_file(const char *filePath, const unsigned char *dataToWrite, size_t dataSize);
 
+    bool delete_file(const char *filePath);
 
     bool exists(const char * filePath);
 

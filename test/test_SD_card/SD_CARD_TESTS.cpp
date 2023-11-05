@@ -82,6 +82,19 @@ void test_append_file(void)
     fileMan.append_file(filePath,dataToWrite, strlen((const char*)dataToWrite));
 }
 
+void test_file_doesnt_exist_after_deletion(void)
+{
+
+    const char * filePath = "/testFileDoesntExistAfterDeletion.txt";
+    unsigned char * dataToWrite = (unsigned char *)"abc";
+    TEST_ASSERT_FALSE(fileMan.exists(filePath));
+    fileMan.write_file(filePath,dataToWrite,strlen((const char*)dataToWrite));
+    TEST_ASSERT_TRUE(fileMan.exists(filePath));
+    fileMan.delete_file(filePath);
+    TEST_ASSERT_FALSE(fileMan.exists(filePath));
+
+}
+
 void setup()
 {
     delay(5000); // service delay
@@ -94,6 +107,7 @@ void setup()
     RUN_TEST(test_writing_creates_files);
     RUN_TEST(test_append_creates_file);
     RUN_TEST(test_append_file);
+    RUN_TEST(test_file_doesnt_exist_after_deletion);
     UNITY_END(); // stop unit testing
 }
 

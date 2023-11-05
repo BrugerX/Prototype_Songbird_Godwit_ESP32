@@ -178,7 +178,19 @@ void SDFileManager::mount()
     }
 }
 
+bool SDFileManager::delete_file(const char *filePath)
+{
+    log_i("Will try to delete file at: %s",filePath);
+    if(!SD.remove(filePath))
+    {
+        log_e("Failed to delete file: %s",filePath);
+        throw std::runtime_error("FAILED TO DELETE FILE");
+    }
 
+    log_i("Succesfully deleted file: %s",filePath);
+    return true;
+
+}
 
 bool SDFileManager::exists(const char *filePath)
 {
@@ -191,6 +203,7 @@ bool SDFileManager::exists(const char *filePath)
         return false;
     }
 
+    file.close();
     return true;
 }
 
@@ -217,12 +230,15 @@ bool SDFileManager::write_file(const char *filePath, const unsigned char *dataTo
         else if(result_size != 0)
         {
                 log_e("Expected number of bytes written: %i\tBytes written: %i\t",dataSize,result_size);
+                file.close();
                 throw std::runtime_error("FAILED TO WRITE WITH SD CARD");
         }
 
         nr_tries++;
         if(nr_tries>MAX_DATALOGGING_RETRIES)
         {
+
+            file.close();
             throw std::runtime_error("FAILED TO WRITE WITH SD CARD - MAX NUMBER OF RETRIES EXCEEDED");
         }
 
@@ -231,6 +247,8 @@ bool SDFileManager::write_file(const char *filePath, const unsigned char *dataTo
 
     }
 
+
+    file.close();
     log_i("File saved succesfully: %s",filePath);
     return true;
 
@@ -260,12 +278,14 @@ bool SDFileManager::append_file(const char *filePath, const unsigned char *dataT
         else if(result_size != 0)
         {
             log_e("Expected number of bytes written: %i\tBytes written: %i\t",dataSize,result_size);
+            file.close();
             throw std::runtime_error("FAILED TO WRITE WITH SD CARD");
         }
 
         nr_tries++;
         if(nr_tries>MAX_DATALOGGING_RETRIES)
         {
+            file.close();
             throw std::runtime_error("FAILED TO WRITE WITH SD CARD - MAX NUMBER OF RETRIES EXCEEDED");
         }
 
@@ -274,6 +294,7 @@ bool SDFileManager::append_file(const char *filePath, const unsigned char *dataT
 
     }
 
+    file.close();
     log_i("File saved succesfully: %s",filePath);
     return true;
 
