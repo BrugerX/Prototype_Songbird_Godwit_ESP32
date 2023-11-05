@@ -3,6 +3,7 @@
 //
 
 #include <DataLogging.h>
+#include <TestUtility.h>
 
 //
 // Created by DripTooHard on 20-05-2023.
@@ -16,7 +17,6 @@
 
 #define size_of_premade_string 8
 
-char * premade_string_to_write = "12.34";
 SPIFFSFileManager& fileMan = SPIFFSFileManager::get_instance();
 
 void setUp(void) {
@@ -29,6 +29,22 @@ void tearDown(void) {
 }
 
 
+
+void create_SWC_tStamp_tuple_test(void)
+{
+    // The float as a string
+    unsigned char float_str[] = "12.12";
+    // The unsigned long value
+    unsigned long ulong_value = 123456789UL; // Example value
+    auto * correct_value =(unsigned char*) "(12.12,123456789)";
+
+    unsigned char * result_tuple = create_SWC_tStamp_tuple(float_str,ulong_value);
+    log_e("%s",result_tuple);
+
+    free(result_tuple);
+
+
+}
 
 void turning_long_into_unchar(void)
 {
@@ -117,10 +133,7 @@ void setup()
 
     //DON'T PUT ANYTHING BEFORE THIS EXCEPT FOR DELAY!!!!
     UNITY_BEGIN(); //Define stuff after this
-
-    RUN_TEST(writing_and_reading_SWC);
-    //RUN_TEST(turning_long_into_unchar);
-    RUN_TEST(writing_and_reading_long);
+    RUN_TEST(create_SWC_tStamp_tuple_test);
     UNITY_END(); // stop unit testing
 }
 

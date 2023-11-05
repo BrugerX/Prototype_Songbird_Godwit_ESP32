@@ -6,15 +6,6 @@
 
 
 
-class FileManager{
-public:
-    FileManager(){}
-    virtual ~FileManager(){}
-    virtual bool save_file(const char * filePath, const unsigned char * dataToWrite) = 0;
-    virtual bool load_file(const char * filePath, unsigned char * resultArray) = 0;
-    virtual bool delete_file(const char * filePath) = 0;
-    virtual bool exists(const char * filePath) = 0;
-};
 
 
 SPIFFSFileManager::SPIFFSFileManager()

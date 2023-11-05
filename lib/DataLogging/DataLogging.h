@@ -28,5 +28,7 @@ long char_array_to_long(unsigned char* charArray);
 
 bool overwrite_value_array(int nr_chars, const char * path);
 
+unsigned char * create_SWC_tStamp_tuple(unsigned char * SWC_value, unsigned long tStamp);
+
 
 #endif //PBT_DATALOGGING_H
