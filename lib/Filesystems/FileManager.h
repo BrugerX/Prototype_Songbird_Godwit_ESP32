@@ -136,6 +136,7 @@ public:
 
     bool append_file(const char * filePath, const unsigned char * dataToWrite);
 
+
     bool exists(const char * filePath);
 
     /**

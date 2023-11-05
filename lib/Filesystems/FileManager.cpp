@@ -180,9 +180,24 @@ void SDFileManager::mount()
 
 
 
+bool SDFileManager::exists(const char *filePath)
+{
+    //TODO: Den checker selv, om filen eksisterer, når den laver "open", måske vi kan bruge det her selv...?
+    log_i("Checking to see if %s exists",filePath);
+    File file = SD.open(filePath,FILE_READ,false);
+
+    if(!file)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 bool SDFileManager::write_file(const char *filePath, const unsigned char *dataToWrite, size_t dataSize)
 {
     File file = SD.open(filePath,FILE_WRITE);
+
     if(!file)
     {
         log_e("Failed to open file!");
