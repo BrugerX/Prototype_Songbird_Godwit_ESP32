@@ -178,6 +178,50 @@ void SDFileManager::mount()
     }
 }
 
+
+
+bool SDFileManager::write_file(const char *filePath, const unsigned char *dataToWrite, size_t dataSize)
+{
+    File file = SD.open(filePath,FILE_WRITE);
+    if(!file)
+    {
+        log_e("Failed to open file!");
+        throw std::runtime_error("File failed to open");
+    }
+
+    bool written_correctly = false;
+    int nr_tries = 0;
+
+    while(!written_correctly)
+    {
+        size_t result_size = file.print((char *) dataToWrite);
+        if(result_size == dataSize)
+        {
+            written_correctly = true;
+        }
+        else if(result_size != 0)
+        {
+                log_e("Expected number of bytes written: %i\tBytes written: %i\t",dataSize,result_size);
+                throw std::runtime_error("FAILED TO WRITE WITH SD CARD");
+        }
+
+        nr_tries++;
+        if(nr_tries>MAX_DATALOGGING_RETRIES)
+        {
+            throw std::runtime_error("FAILED TO WRITE WITH SD CARD - MAX NUMBER OF RETRIES EXCEEDED");
+        }
+
+        //Let the SD card get back up
+        delay(mS_TIME_BETWEEN_DATALOGS);
+
+    }
+
+    log_i("File saved succesfully: %s",filePath);
+    return true;
+
+
+}
+
 SDFileManager::SDFileManager() {
 
 }
@@ -185,3 +229,5 @@ SDFileManager::SDFileManager() {
 SDFileManager::~SDFileManager() {
 
 }
+
+

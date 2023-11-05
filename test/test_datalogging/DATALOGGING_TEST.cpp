@@ -17,7 +17,7 @@
 
 #define size_of_premade_string 8
 
-SPIFFSFileManager& fileMan = SPIFFSFileManager::get_instance();
+SDFileManager& fileMan = SDFileManager::get_instance();
 
 void setUp(void) {
     // set stuff up here
@@ -41,9 +41,25 @@ void create_SWC_tStamp_tuple_test(void)
     unsigned char * result_tuple = create_SWC_tStamp_tuple(float_str,ulong_value);
     log_e("%s",result_tuple);
 
+
     free(result_tuple);
 
 
+}
+
+void create_and_save_SWC_tStamp_tuple(void)
+{
+    // The float as a string
+    unsigned char float_str[] = "12.12";
+    // The unsigned long value
+    unsigned long ulong_value = 123456789UL; // Example value
+    auto * correct_value =(unsigned char*) "(12.12,123456789)";
+
+    unsigned char * result_tuple = create_SWC_tStamp_tuple(float_str,ulong_value);
+    log_e("%s",result_tuple);
+
+    fileMan.write_file("/test.txt",result_tuple,strlen((const char*)result_tuple));
+    free(result_tuple);
 }
 
 void turning_long_into_unchar(void)
@@ -58,71 +74,8 @@ void turning_long_into_unchar(void)
 }
 
 
-void writing_and_reading_SWC(void)
-{
-    int nr_SWC_values = 2;
-    int incrementer = 0;
-    int size_of_Varray = nr_SWC_values*6+2;
-    const char * test_path = "/SWC_w_r_test";
-
-    overwrite_value_array(size_of_Varray,test_path);
 
 
-    unsigned char* raw_SWC_values[] = {
-            const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>("1.23")),
-            const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>("45.67"))
-    };
-
-    unsigned char * Varray = (unsigned char *) malloc(sizeof(unsigned char) * size_of_Varray);
-
-
-
-    for(int i = 0; i<nr_SWC_values; i++)
-    {
-        insert_at_carriage_return_and_save(test_path,raw_SWC_values[i],5,size_of_Varray,incrementer*5,&incrementer);
-    }
-
-
-    fileMan.load_file(test_path,Varray,size_of_Varray-1);
-
-    log_e("%s",Varray);
-    free(Varray);
-
-}
-
-
-void writing_and_reading_long(void)
-{
-    int nr_long_values = 4;
-    int incrementer = 0;
-    int size_of_Varray = TIMESTEP_VALUE_ARRAY_SIZE;
-    const char * test_path = "/longwtest";
-
-
-    //Getting the write values ready
-    long raw_long_values[] = {0x41424344L, 0x41424344L,0x41424344L,0x41424344L};
-    unsigned char * Varray = (unsigned char *) malloc(sizeof(unsigned char) * size_of_Varray);
-
-
-    for(int i = 0; i < nr_long_values; i++)
-    {
-
-
-        bool success = insert_at_carriage_return_and_save(
-                test_path,
-                raw_long_values[i],
-                SIZE_OF_TIMESTAMP_AFTER_TURNING_INTO_UCHAR,size_of_Varray,incrementer*4,&incrementer);
-
-    }
-
-    fileMan.load_file(test_path, Varray, size_of_Varray - 1);
-
-    for(int i = 0; i<nr_long_values*4;i++)
-    {
-        log_e("%c",Varray[i]);
-    }
-
-}
 
 
 
@@ -133,7 +86,9 @@ void setup()
 
     //DON'T PUT ANYTHING BEFORE THIS EXCEPT FOR DELAY!!!!
     UNITY_BEGIN(); //Define stuff after this
+    fileMan.mount();
     RUN_TEST(create_SWC_tStamp_tuple_test);
+    RUN_TEST(create_and_save_SWC_tStamp_tuple);
     UNITY_END(); // stop unit testing
 }
 

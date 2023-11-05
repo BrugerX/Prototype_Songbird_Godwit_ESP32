@@ -9,6 +9,8 @@
 #include "SD.h"
 #include "SPI.h"
 #include "FS.h"
+#include "FORMATTING_MACROS.h"
+
 
 
 class FileManager{
@@ -130,7 +132,7 @@ public:
      *
      * \return true if a success, false if a failure, prints a custom error message
      */
-    bool write_file(const char * filePath, const unsigned char * dataToWrite);
+    bool write_file(const char *filePath, const unsigned char *dataToWrite, size_t dataSize);
 
     bool append_file(const char * filePath, const unsigned char * dataToWrite);
 
