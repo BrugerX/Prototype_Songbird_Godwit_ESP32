@@ -180,8 +180,9 @@ bool insert_at_carriage_return_and_save(const char* path, unsigned long insert_l
 
 unsigned char * create_SWC_tStamp_tuple(unsigned char * SWC_value, unsigned long tStamp) {
 
-    // Correctly calculate the length of the string pointed to by SWC_value
-    int max_length = sizeof((char *)SWC_value) + snprintf(NULL, 0, "%lu", tStamp) + 3 + 1;
+    // Calculate the maximum length of the final string
+    // We have 3 for the parentheses and comma, plus 1 for the null-terminator.
+    int max_length = SIZE_OF_SWC_AFTER_FORMATTING + snprintf(NULL, 0, "%lu", tStamp) + 3 + 1;
 
     // Allocate memory for the final string
     char *result_str = (char *) malloc(max_length);
