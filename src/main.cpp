@@ -33,8 +33,8 @@ static int state = STATE_IDLE;
 
 void IRAM_ATTR xperimenton_interrupt()
 {
-    xperiment_on = !xperiment_on;
-    state = STATE_IDLE;
+    xperiment_on = true;
+    //state = STATE_IDLE;
 }
 
 
@@ -242,7 +242,7 @@ bool connectToServer() {
 void setup (){
     Serial.begin(115200);
     Serial.println("Starting NimBLE Client");
-    fileMan.mount();
+
 
     pinMode(XPERIMENT_ON_TRIGGER_PIN,INPUT);
     attachInterrupt(digitalPinToInterrupt(XPERIMENT_ON_TRIGGER_PIN),xperimenton_interrupt,HIGH);
@@ -251,6 +251,9 @@ void setup (){
     pinMode(BLE_FLASH_PIN,OUTPUT);
     pinMode(RED_LED, OUTPUT);
     pinMode(XPERIMENT_ON_PIN,OUTPUT);
+    digitalWrite(XPERIMENT_ON_PIN,HIGH);
+
+    fileMan.mount();
 
     /** Initialize NimBLE, no device name spcified as we are not advertising */
     NimBLEDevice::init(BLE_CLIENT_NAME);
@@ -297,21 +300,18 @@ void setup (){
     pScan->setActiveScan(true);
 }
 
+void loop() {
 
-void loop (){
-
-    if(restart_on)
-    {
+    if (restart_on) {
         log_e("Restarting ESP32");
-        bool res1,res2,finish = false;
-        do{
-        delay(500);
-        res1 = overwrite_value_array(SWC_VALUE_ARRAY_SIZE,SWC_VALUE_ARRAY_PATH);
-        delay(1500);
-        res2 = overwrite_value_array(TIMESTEP_VALUE_ARRAY_SIZE,TIMESTEP_VALUE_ARRAY_PATH);
-        finish = res1 && res2;
-        }
-        while(!finish);
+        bool res1, res2, finish = false;
+        do {
+            delay(500);
+            res1 = overwrite_value_array(SWC_VALUE_ARRAY_SIZE, SWC_VALUE_ARRAY_PATH);
+            delay(1500);
+            res2 = overwrite_value_array(TIMESTEP_VALUE_ARRAY_SIZE, TIMESTEP_VALUE_ARRAY_PATH);
+            finish = res1 && res2;
+        } while (!finish);
 
 
         esp_system_abort("Restarting experiment");
@@ -319,20 +319,16 @@ void loop (){
     }
 
 
-
-
-    if(xperiment_on)
-    {
-        digitalWrite(XPERIMENT_ON_PIN,LOW);
-        switch(state)
-        {
+    if (xperiment_on) {
+        digitalWrite(XPERIMENT_ON_PIN, LOW);
+        switch (state) {
             case STATE_IDLE:
 
-                log_e("%i",xperiment_on);
+                log_e("%i", xperiment_on);
                 log_e("State: Idle");
 
 
-                NimBLEDevice::getScan()->start(scanTime,scanEndedCB);
+                NimBLEDevice::getScan()->start(scanTime, scanEndedCB);
                 state = STATE_LISTENING;
 
                 break;
@@ -341,20 +337,20 @@ void loop (){
 
 
                 //If we can connect to our server
-                if(doConnect)
-                {
+                if (doConnect) {
                     connectToServer();
                     doConnect = false;
 
-                    digitalWrite(BLE_FLASH_PIN,HIGH);
-                    vTaskDelay(100/portTICK_PERIOD_MS);
-                    digitalWrite(BLE_FLASH_PIN,LOW);
+                    digitalWrite(BLE_FLASH_PIN, HIGH);
+                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    digitalWrite(BLE_FLASH_PIN, LOW);
 
-                    if(xperiment_on){
-                        unsigned char * SWC_tuple = create_SWC_tStamp_tuple(SWC_read,time_last_read);
-                        log_e("Will append: %s",SWC_tuple);
-                        fileMan.append_file(SWC_VALUE_ARRAY_PATH,SWC_tuple,strlen((const char *) SWC_tuple));
-                    state = STATE_VALUE_RECEIVED;}
+                    if (xperiment_on) {
+                        unsigned char *SWC_tuple = create_SWC_tStamp_tuple(SWC_read, time_last_read);
+                        log_e("Will append: %s", SWC_tuple);
+                        fileMan.append_file(SWC_VALUE_ARRAY_PATH, SWC_tuple, strlen((const char *) SWC_tuple));
+                        state = STATE_VALUE_RECEIVED;
+                    }
                 }
 
                 break;
@@ -366,34 +362,31 @@ void loop (){
                 //TODO: Check if array is full
 
 
-                if(xperiment_on)
-                {
+                if (xperiment_on) {
                     log_e("State: Listening\n");
                     state = STATE_LISTENING;
-                }
-                else
-                {
+                } else {
                     state = STATE_IDLE;
                 }
 
                 break;
         }
 
-    }
-    else{
+    } else {
         //log_e("Experiment off");
-        digitalWrite(XPERIMENT_ON_PIN,HIGH);
+        digitalWrite(XPERIMENT_ON_PIN, HIGH);
         doConnect = false;
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-        if(NimBLEDevice::getScan()->isScanning())
-        {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        if (NimBLEDevice::getScan()->isScanning()) {
             //We add delays, so that the GATT server has time to either startup- or shutdown before th button can pressed again
             NimBLEDevice::getScan()->stop();
-            vTaskDelay(1000/portTICK_PERIOD_MS);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
         state = STATE_IDLE;
     }
 
 
-
 }
+
+
+
