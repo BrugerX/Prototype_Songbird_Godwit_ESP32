@@ -197,6 +197,7 @@ unsigned char * create_SWC_tStamp_tuple(unsigned char * SWC_value, unsigned long
         return (unsigned char *) result_str;
     } else {
         log_e("Memory allocation failed!\n");
+        throw std::runtime_error("COULD NOT CREATE SWC_tSTAMP_tuple");
         return NULL; // Make sure to return NULL if memory allocation fails
     }
 }

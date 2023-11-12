@@ -39,7 +39,6 @@ void IRAM_ATTR xperimenton_interrupt()
 
 
 NimBLEClient * pClient_SWC;
-SPIFFSFileManager& fileMane = SPIFFSFileManager::get_instance();
 SDFileManager& fileMan = SDFileManager::get_instance();
 
 /**  None of these are required as they will be handled by the library with defaults. **
@@ -301,23 +300,7 @@ void setup (){
 }
 
 void loop() {
-
-    if (restart_on) {
-        log_e("Restarting ESP32");
-        bool res1, res2, finish = false;
-        do {
-            delay(500);
-            res1 = overwrite_value_array(SWC_VALUE_ARRAY_SIZE, SWC_VALUE_ARRAY_PATH);
-            delay(1500);
-            res2 = overwrite_value_array(TIMESTEP_VALUE_ARRAY_SIZE, TIMESTEP_VALUE_ARRAY_PATH);
-            finish = res1 && res2;
-        } while (!finish);
-
-
-        esp_system_abort("Restarting experiment");
-
-    }
-
+    try{
 
     if (xperiment_on) {
         digitalWrite(XPERIMENT_ON_PIN, LOW);
@@ -383,6 +366,22 @@ void loop() {
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
         state = STATE_IDLE;
+    }
+    }
+    catch(const std::exception& e)
+    {
+        delay(1000);
+        digitalWrite(RED_LED,HIGH);
+        log_e("Program failed, got error: %s",e.what());
+        try
+        {
+            fileMan.append_file(ERROR_LOGGING_PATH,(unsigned char *) e.what(),strlen(e.what()));
+        }
+        catch(const std::exception& f)
+        {
+            digitalWrite(BLE_FLASH_PIN,HIGH);
+        }
+
     }
 
 

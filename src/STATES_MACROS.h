@@ -12,7 +12,7 @@
 //LED pins
 #define BLE_FLASH_PIN 32
 #define XPERIMENT_ON_PIN 25
-#define RED_LED 33
+#define RED_LED 27
 
 
 #define XPERIMENT_ON_TRIGGER_PIN 35
